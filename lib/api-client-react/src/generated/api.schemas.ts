@@ -573,6 +573,14 @@ export type HandleBrowserLoginCallbackParams = {
   iss?: string;
 };
 
+export type InviteOrganizationMemberBody = {
+  email: string;
+};
+
+export type InviteOrganizationMember200 = {
+  message?: string;
+};
+
 export type ListCostLineItemsParams = {
   scenarioId?: number;
 };

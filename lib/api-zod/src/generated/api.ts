@@ -114,6 +114,17 @@ export const ListOrganizationMembersResponse = zod.array(
 );
 
 /**
+ * @summary Invite a user to join the current organization (placeholder)
+ */
+export const InviteOrganizationMemberBody = zod.object({
+  email: zod.string().email(),
+});
+
+export const InviteOrganizationMemberResponse = zod.object({
+  message: zod.string().optional(),
+});
+
+/**
  * @summary List all business cases in the organization
  */
 export const ListBusinessCasesResponseItem = zod.object({

@@ -39,6 +39,8 @@ import type {
   HandleBrowserLoginCallbackParams,
   HealthStatus,
   IndustryTemplate,
+  InviteOrganizationMember200,
+  InviteOrganizationMemberBody,
   ListCostLineItemsParams,
   ListValueDriversParams,
   LogoutSuccess,
@@ -147,7 +149,7 @@ export function useHealthCheck<
  * @summary Get the currently authenticated user
  */
 export const getGetCurrentAuthUserUrl = () => {
-  return `/api/auth/user`;
+  return `/api/auth/me`;
 };
 
 export const getCurrentAuthUser = async (
@@ -160,7 +162,7 @@ export const getCurrentAuthUser = async (
 };
 
 export const getGetCurrentAuthUserQueryKey = () => {
-  return [`/api/auth/user`] as const;
+  return [`/api/auth/me`] as const;
 };
 
 export const getGetCurrentAuthUserQueryOptions = <
@@ -233,8 +235,8 @@ export const getBeginBrowserLoginUrl = (params?: BeginBrowserLoginParams) => {
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/login?${stringifiedParams}`
-    : `/api/login`;
+    ? `/api/auth/login?${stringifiedParams}`
+    : `/api/auth/login`;
 };
 
 export const beginBrowserLogin = async (
@@ -250,7 +252,7 @@ export const beginBrowserLogin = async (
 export const getBeginBrowserLoginQueryKey = (
   params?: BeginBrowserLoginParams,
 ) => {
-  return [`/api/login`, ...(params ? [params] : [])] as const;
+  return [`/api/auth/login`, ...(params ? [params] : [])] as const;
 };
 
 export const getBeginBrowserLoginQueryOptions = <
@@ -332,8 +334,8 @@ export const getHandleBrowserLoginCallbackUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/callback?${stringifiedParams}`
-    : `/api/callback`;
+    ? `/api/auth/callback?${stringifiedParams}`
+    : `/api/auth/callback`;
 };
 
 export const handleBrowserLoginCallback = async (
@@ -349,7 +351,7 @@ export const handleBrowserLoginCallback = async (
 export const getHandleBrowserLoginCallbackQueryKey = (
   params?: HandleBrowserLoginCallbackParams,
 ) => {
-  return [`/api/callback`, ...(params ? [params] : [])] as const;
+  return [`/api/auth/callback`, ...(params ? [params] : [])] as const;
 };
 
 export const getHandleBrowserLoginCallbackQueryOptions = <
@@ -422,7 +424,7 @@ export function useHandleBrowserLoginCallback<
  * @summary Clear the session and begin OIDC logout
  */
 export const getLogoutBrowserSessionUrl = () => {
-  return `/api/logout`;
+  return `/api/auth/logout`;
 };
 
 export const logoutBrowserSession = async (
@@ -435,7 +437,7 @@ export const logoutBrowserSession = async (
 };
 
 export const getLogoutBrowserSessionQueryKey = () => {
-  return [`/api/logout`] as const;
+  return [`/api/auth/logout`] as const;
 };
 
 export const getLogoutBrowserSessionQueryOptions = <
@@ -818,6 +820,96 @@ export function useListOrganizationMembers<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Invite a user to join the current organization (placeholder)
+ */
+export const getInviteOrganizationMemberUrl = () => {
+  return `/api/organizations/invite`;
+};
+
+export const inviteOrganizationMember = async (
+  inviteOrganizationMemberBody: InviteOrganizationMemberBody,
+  options?: RequestInit,
+): Promise<InviteOrganizationMember200> => {
+  return customFetch<InviteOrganizationMember200>(
+    getInviteOrganizationMemberUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(inviteOrganizationMemberBody),
+    },
+  );
+};
+
+export const getInviteOrganizationMemberMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteOrganizationMember>>,
+    TError,
+    { data: BodyType<InviteOrganizationMemberBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof inviteOrganizationMember>>,
+  TError,
+  { data: BodyType<InviteOrganizationMemberBody> },
+  TContext
+> => {
+  const mutationKey = ["inviteOrganizationMember"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof inviteOrganizationMember>>,
+    { data: BodyType<InviteOrganizationMemberBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return inviteOrganizationMember(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InviteOrganizationMemberMutationResult = NonNullable<
+  Awaited<ReturnType<typeof inviteOrganizationMember>>
+>;
+export type InviteOrganizationMemberMutationBody =
+  BodyType<InviteOrganizationMemberBody>;
+export type InviteOrganizationMemberMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Invite a user to join the current organization (placeholder)
+ */
+export const useInviteOrganizationMember = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteOrganizationMember>>,
+    TError,
+    { data: BodyType<InviteOrganizationMemberBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof inviteOrganizationMember>>,
+  TError,
+  { data: BodyType<InviteOrganizationMemberBody> },
+  TContext
+> => {
+  return useMutation(getInviteOrganizationMemberMutationOptions(options));
+};
 
 /**
  * @summary List all business cases in the organization

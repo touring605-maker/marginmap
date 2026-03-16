@@ -45,7 +45,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  /auth/user:
+  /auth/me:
     get:
       tags: [Auth]
       operationId: getCurrentAuthUser
@@ -61,7 +61,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthUserEnvelope'
 
-  /login:
+  /auth/login:
     get:
       tags: [Auth]
       operationId: beginBrowserLogin
@@ -76,7 +76,7 @@ paths:
         '302':
           description: Redirect to the OIDC authorization endpoint.
 
-  /callback:
+  /auth/callback:
     get:
       tags: [Auth]
       operationId: handleBrowserLoginCallback
@@ -102,7 +102,7 @@ paths:
         '302':
           description: Redirect on success or failure.
 
-  /logout:
+  /auth/logout:
     get:
       tags: [Auth]
       operationId: logoutBrowserSession
@@ -199,6 +199,39 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/OrganizationMember"
+
+  /organizations/invite:
+    post:
+      tags: [organizations]
+      operationId: inviteOrganizationMember
+      summary: Invite a user to join the current organization (placeholder)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Invite sent (placeholder)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
 
   /cases:
     get:

@@ -43,6 +43,8 @@ export * from "./getFinancialModelParams";
 export * from "./handleBrowserLoginCallbackParams";
 export * from "./healthStatus";
 export * from "./industryTemplate";
+export * from "./inviteOrganizationMember200";
+export * from "./inviteOrganizationMemberBody";
 export * from "./listCostLineItemsParams";
 export * from "./listValueDriversParams";
 export * from "./logoutSuccess";
