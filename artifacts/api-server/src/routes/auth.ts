@@ -128,33 +128,11 @@ router.get("/auth/login", async (req: Request, res: Response) => {
   res.redirect(redirectTo.href);
 });
 
-// Query params are not validated because the OIDC provider may include
-// parameters not expressed in the schema.
-router.get("/login", async (req: Request, res: Response) => {
-  const config2 = await getOidcConfig();
-  const callbackUrl2 = `${getOrigin(req)}/api/auth/callback`;
-  const returnTo2 = getSafeReturnTo(req.query.returnTo);
-  const state2 = oidc.randomState();
-  const nonce2 = oidc.randomNonce();
-  const codeVerifier2 = oidc.randomPKCECodeVerifier();
-  const codeChallenge2 = await oidc.calculatePKCECodeChallenge(codeVerifier2);
-  const redirectTo2 = oidc.buildAuthorizationUrl(config2, {
-    redirect_uri: callbackUrl2,
-    scope: "openid email profile offline_access",
-    code_challenge: codeChallenge2,
-    code_challenge_method: "S256",
-    prompt: "login consent",
-    state: state2,
-    nonce: nonce2,
-  });
-  setOidcCookie(res, "code_verifier", codeVerifier2);
-  setOidcCookie(res, "nonce", nonce2);
-  setOidcCookie(res, "state", state2);
-  setOidcCookie(res, "return_to", returnTo2);
-  res.redirect(redirectTo2.href);
+router.get("/login", (_req: Request, res: Response) => {
+  res.redirect("/api/auth/login");
 });
 
-router.get("/callback", async (req: Request, res: Response) => {
+router.get("/callback", (req: Request, res: Response) => {
   res.redirect(`/api/auth/callback?${new URL(req.url, `http://${req.headers.host}`).searchParams}`);
 });
 

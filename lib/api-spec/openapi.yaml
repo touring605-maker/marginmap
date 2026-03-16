@@ -1328,6 +1328,8 @@ components:
           type: [number, 'null']
         cascadeField:
           type: [string, 'null']
+        canvasPositionJson:
+          type: [object, 'null']
 
     CreateCaseDependencyBody:
       type: object

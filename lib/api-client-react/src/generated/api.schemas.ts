@@ -449,6 +449,13 @@ export const CaseDependencyDependencyType = {
   conditional: "conditional",
 } as const;
 
+/**
+ * @nullable
+ */
+export type CaseDependencyCanvasPositionJson = {
+  [key: string]: unknown;
+} | null;
+
 export interface CaseDependency {
   id: number;
   fromCaseId: number;
@@ -458,6 +465,8 @@ export interface CaseDependency {
   conditionThreshold?: number | null;
   /** @nullable */
   cascadeField?: string | null;
+  /** @nullable */
+  canvasPositionJson?: CaseDependencyCanvasPositionJson;
 }
 
 export type CreateCaseDependencyBodyDependencyType =

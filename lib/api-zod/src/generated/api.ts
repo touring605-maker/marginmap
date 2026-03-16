@@ -699,6 +699,7 @@ export const ListCaseDependenciesResponseItem = zod.object({
   dependencyType: zod.enum(["sequential", "parallel", "conditional"]),
   conditionThreshold: zod.number().nullish(),
   cascadeField: zod.string().nullish(),
+  canvasPositionJson: zod.object({}).passthrough().nullish(),
 });
 export const ListCaseDependenciesResponse = zod.array(
   ListCaseDependenciesResponseItem,
@@ -737,6 +738,7 @@ export const UpdateCaseDependencyResponse = zod.object({
   dependencyType: zod.enum(["sequential", "parallel", "conditional"]),
   conditionThreshold: zod.number().nullish(),
   cascadeField: zod.string().nullish(),
+  canvasPositionJson: zod.object({}).passthrough().nullish(),
 });
 
 /**

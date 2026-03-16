@@ -50,6 +50,7 @@ function Router() {
       {/* Protected Routes (Wrapped in AppLayout) */}
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+      <Route path="/cases" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/cases/new" component={() => <ProtectedRoute component={NewCase} />} />
       <Route path="/cases/:id" component={() => <ProtectedRoute component={CaseEditor} />} />
       <Route path="/canvas" component={() => <ProtectedRoute component={Canvas} />} />
