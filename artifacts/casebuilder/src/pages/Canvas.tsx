@@ -82,6 +82,9 @@ export default function Canvas() {
     })),
   });
 
+  const modelTimestampKey = modelQueries.map((q) => q.dataUpdatedAt).join(",");
+  const scenarioTimestampKey = scenarioQueries.map((q) => q.dataUpdatedAt).join(",");
+
   const modelMap = useMemo(() => {
     const m = new Map<number, FinancialModel>();
     if (cases) {
@@ -91,7 +94,8 @@ export default function Canvas() {
       });
     }
     return m;
-  }, [cases, modelQueries]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cases, modelTimestampKey]);
 
   const scenarioCountMap = useMemo(() => {
     const m = new Map<number, number>();
@@ -102,7 +106,8 @@ export default function Canvas() {
       });
     }
     return m;
-  }, [cases, scenarioQueries]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cases, scenarioTimestampKey]);
 
   const invalidateFinancialModels = useCallback(
     (...caseIds: number[]) => {
