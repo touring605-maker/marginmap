@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useFinancialModelData, useUpdateCase } from "@/hooks/use-cases";
-import { Loader2, TrendingUp, DollarSign, Target, Activity, Clock, Shield, Wallet, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, TrendingUp, DollarSign, Target, Activity, Shield, Wallet, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import {
   ResponsiveContainer,
@@ -134,11 +134,6 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
           title="Confidence-Adjusted Value"
           value={formatCurrencyCompact(data.confidenceAdjustedValue)}
           icon={<Shield className="w-5 h-5" />}
-        />
-        <MetricCard
-          title="Payback Period"
-          value={data.paybackPeriodMonths ? `${data.paybackPeriodMonths} months` : "N/A"}
-          icon={<Clock className="w-5 h-5" />}
         />
       </div>
 
