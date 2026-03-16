@@ -6,14 +6,23 @@ import router from "./routes";
 
 const app: Express = express();
 
-const allowedOrigins = process.env.REPLIT_DEV_DOMAIN
-  ? [`https://${process.env.REPLIT_DEV_DOMAIN}`, `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`]
-  : ["http://localhost:5173"];
+const allowedOrigins: string[] = [];
+if (process.env.REPLIT_DEV_DOMAIN) {
+  allowedOrigins.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+}
+if (process.env.REPLIT_DOMAINS) {
+  for (const d of process.env.REPLIT_DOMAINS.split(",")) {
+    if (d.trim()) allowedOrigins.push(`https://${d.trim()}`);
+  }
+}
+if (allowedOrigins.length === 0) {
+  allowedOrigins.push("http://localhost:5173");
+}
 
 app.use(cors({
   credentials: true,
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(allowed => origin === allowed || origin.endsWith(".replit.dev"))) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(null, false);
