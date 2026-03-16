@@ -5,7 +5,6 @@ import { MetricCard } from "@/components/MetricCard";
 import {
   ResponsiveContainer,
   ComposedChart,
-  AreaChart,
   Area,
   CartesianGrid,
   XAxis,
