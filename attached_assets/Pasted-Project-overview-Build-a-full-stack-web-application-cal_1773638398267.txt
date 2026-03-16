@@ -1,0 +1,141 @@
+Project overview
+Build a full-stack web application called CaseBuilder that helps finance teams, consultants, and business operators construct rigorous, shareable business cases (pro-formas). The app must handle complex cost modeling, value comparisons, financial modeling (NPV/IRR), breakeven analysis, and visual dependency mapping between multiple business cases.
+
+Tech stack
+Let Replit Agent choose, but prefer:
+
+Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS
+Backend: Next.js API routes or a lightweight Node/Express layer
+Database: Postgres via Neon (Replit-friendly), Prisma ORM
+Canvas/graph: React Flow (for the dependency canvas)
+Charts: Recharts
+Export: react-pdf or pdfmake for PDF; xlsx library for Excel
+Auth: Auth.js (NextAuth) with email/password to start
+
+
+Phase 1 — Core data entry and cost modeling
+Business case entity
+Each business case should have: a name, description, owner, industry tag, currency, time horizon (months or years), and a status (draft / in review / approved).
+Cost builder
+Users must be able to add cost line items of the following types. Each line item has a name, description, amount, and frequency:
+
+One-time / project cost
+Capital expenditure (CapEx) — with optional depreciation schedule
+Operational expenditure (OpEx) — recurring monthly or annually
+Projected cost increases — percentage-based escalation year over year
+Implementation / transition costs
+
+Industry-specific cost scenario templates — pre-fill a set of typical line items when a user selects an industry:
+
+Manufacturing: equipment, tooling, line changeover, maintenance contracts, labor, scrap/waste
+Retail: inventory, shrinkage, store labor, POS systems, logistics
+SaaS / software: licensing, infrastructure, implementation, training, support
+Healthcare: compliance, EHR systems, staffing, regulatory filings
+
+Users can start from a template and then modify freely.
+Value comparison builder
+Users add value drivers — the financial benefits the business case is expected to generate. Types:
+
+Cost reduction (hard savings)
+Revenue generation (new or incremental)
+Margin improvement (rate-based)
+Productivity gains (hours saved × burdened rate)
+Risk reduction (probability-weighted loss avoidance)
+
+Each value driver has an expected annual value, confidence level (high / medium / low), and time to realization (how many months until this value starts accruing).
+
+Phase 2 — Financial models
+NPV & IRR engine
+
+Accept a discount rate (user-configurable, defaulting to 10%)
+Project cash flows month-by-month or year-by-year across the time horizon
+Calculate net present value (NPV) and internal rate of return (IRR) using standard formulas
+Display a cash flow waterfall chart (Recharts bar chart showing cumulative net benefit over time)
+
+Breakeven analysis
+
+Calculate time to breakeven: the month/year when cumulative net benefit crosses zero
+Display a clear breakeven line on the chart
+Show payback period in months
+
+Financial timeline / objective tracker
+
+Allow users to set a financial objective (e.g. "achieve $2M in cumulative savings by month 18")
+Show progress toward that objective on the timeline
+Flag if the model shows the objective will not be met within the time horizon
+
+Summary dashboard per business case
+
+Total investment required
+Total expected value over the time horizon
+NPV, IRR, breakeven month, ROI %
+Confidence-adjusted value (weighted by confidence levels on each value driver)
+
+
+Phase 3 — Dependency canvas (visual, drag-and-drop)
+Use React Flow to build a visual canvas where users can:
+
+Add business case nodes (each node represents a saved business case)
+Draw dependency edges between nodes — "Case B depends on Case A being approved first"
+Assign dependency types: sequential (must complete first), parallel (can run concurrently), conditional (only if another case achieves a threshold)
+When a case is linked, its financial outputs cascade — e.g. the cost savings from Case A can feed as an input into Case B's model
+
+The canvas should:
+
+Auto-layout with a sensible default (dagre or ELK layout)
+Allow manual repositioning of nodes
+Show a mini summary badge on each node (NPV, breakeven, status color)
+Support zooming and panning
+Be saveable and shareable
+
+
+Output formats
+All four must be supported:
+
+Interactive dashboard — live, in-app, with Recharts visualizations
+PDF export — a clean, printable business case document with all assumptions, model outputs, and charts. Include a cover page, executive summary section, cost table, value table, and financial summary
+Excel export — a multi-tab workbook: (1) Assumptions, (2) Cost model, (3) Value model, (4) Cash flow projection, (5) NPV/IRR summary
+Shareable URL — a read-only, public link to the business case that does not require login to view. Include a toggle in settings to enable/disable sharing
+
+
+Data model (Postgres / Prisma)
+Core tables:
+
+BusinessCase — id, name, description, ownerId, industry, currency, timeHorizonMonths, discountRate, status, shareToken, createdAt, updatedAt
+CostLineItem — id, businessCaseId, name, type (enum), amount, frequency, escalationRate, depreciationYears
+ValueDriver — id, businessCaseId, name, type (enum), annualValue, confidenceLevel, monthsToRealize
+FinancialObjective — id, businessCaseId, targetValue, targetMonth
+CaseDependency — id, fromCaseId, toCaseId, dependencyType (enum), canvasPositionJson
+User — id, email, passwordHash, role
+
+
+UX / navigation
+
+/dashboard — list of all business cases with status chips and summary metrics
+/cases/new — guided wizard: name → industry template → costs → value drivers → review
+/cases/[id] — full business case editor with tabbed sections (Overview, Costs, Value, Financial Model, Export)
+/canvas — full-screen dependency canvas (React Flow)
+/cases/[id]/view — public read-only share view (no auth required if shareToken present)
+
+
+Build order for Replit Agent
+Build in this sequence to reach a working state as fast as possible:
+
+Auth, user model, database connection
+Business case CRUD + cost line item entry
+Value driver entry
+NPV/IRR/breakeven calculation engine
+Dashboard summary page with Recharts
+Industry templates
+PDF and Excel export
+React Flow dependency canvas
+Shareable URL / public view
+
+
+Open questions for you to answer before handing to Replit
+A few things worth deciding before you kick this off:
+
+Multi-tenancy: Should multiple users share cases within a team/org, or is it single-user for now? This affects whether you need a Team or Organization model.
+Currency handling: Do you want multi-currency support with conversion, or is USD-only fine to start?
+Versioning: Should users be able to create "scenarios" within a single case (optimistic/base/conservative), or is one model per case sufficient for Phase 1?
+The canvas save format: React Flow positions are stored as JSON — confirm whether you want those stored per-user or globally.
