@@ -50,15 +50,22 @@ export default function Canvas() {
   const { data: cases, isLoading: casesLoading } = useListBusinessCases();
   const { data: positionsData, isLoading: posLoading } = useGetCanvasPositions();
   const { data: deps, isLoading: depsLoading } = useListCaseDependencies();
-  const savePositions = useSaveCanvasPositions();
-  const createDep = useCreateCaseDependency();
-  const deleteDep = useDeleteCaseDependency();
+  const savePositionsMutation = useSaveCanvasPositions();
+  const createDepMutation = useCreateCaseDependency();
+  const deleteDepMutation = useDeleteCaseDependency();
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
   const initialized = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const savePositionsRef = useRef(savePositionsMutation);
+  savePositionsRef.current = savePositionsMutation;
+  const deleteDepRef = useRef(deleteDepMutation);
+  deleteDepRef.current = deleteDepMutation;
+  const createDepRef = useRef(createDepMutation);
+  createDepRef.current = createDepMutation;
   const depsRef = useRef(deps);
   depsRef.current = deps;
 
@@ -111,15 +118,6 @@ export default function Canvas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cases, scenarioTimestampKey]);
 
-  const invalidateFinancialModels = useCallback(
-    (...caseIds: number[]) => {
-      caseIds.forEach((id) => {
-        queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(id) });
-      });
-    },
-    [queryClient]
-  );
-
   const debounceSavePositions = useCallback(
     (updatedNodes: Node[]) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -129,7 +127,7 @@ export default function Canvas() {
           x: n.position.x,
           y: n.position.y,
         }));
-        savePositions.mutate(
+        savePositionsRef.current.mutate(
           { data: { positions } },
           {
             onSuccess: () => {
@@ -139,18 +137,21 @@ export default function Canvas() {
         );
       }, 800);
     },
-    [savePositions, queryClient]
+    [queryClient]
   );
 
   const handleDeleteDep = useCallback(
     (depId: number) => {
       const dep = depsRef.current?.find((d) => d.id === depId);
-      deleteDep.mutate(
+      deleteDepRef.current.mutate(
         { id: depId },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: getListCaseDependenciesQueryKey() });
-            if (dep) invalidateFinancialModels(dep.fromCaseId, dep.toCaseId);
+            if (dep) {
+              queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(dep.fromCaseId) });
+              queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(dep.toCaseId) });
+            }
             setNodes((currentNodes) => {
               debounceSavePositions(currentNodes);
               return currentNodes;
@@ -159,7 +160,7 @@ export default function Canvas() {
         }
       );
     },
-    [deleteDep, queryClient, setNodes, debounceSavePositions, invalidateFinancialModels]
+    [queryClient, setNodes, debounceSavePositions]
   );
 
   useEffect(() => {
@@ -206,8 +207,8 @@ export default function Canvas() {
       setNodes(newNodes);
     }
     setEdges(newEdges);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [casesLoading, posLoading, depsLoading]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- init-only effect guarded by initialized.current
 
   useEffect(() => {
     if (!initialized.current) return;
@@ -298,7 +299,7 @@ export default function Canvas() {
       const fromId = parseInt(pendingConnection.source.replace("case-", ""), 10);
       const toId = parseInt(pendingConnection.target.replace("case-", ""), 10);
 
-      createDep.mutate(
+      createDepRef.current.mutate(
         {
           data: {
             fromCaseId: fromId,
@@ -311,14 +312,15 @@ export default function Canvas() {
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: getListCaseDependenciesQueryKey() });
-            invalidateFinancialModels(fromId, toId);
+            queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(fromId) });
+            queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(toId) });
             setPendingConnection(null);
             saveCurrentPositions();
           },
         }
       );
     },
-    [pendingConnection, createDep, queryClient, saveCurrentPositions, invalidateFinancialModels]
+    [pendingConnection, queryClient, saveCurrentPositions]
   );
 
   const handleAutoLayout = useCallback(() => {
