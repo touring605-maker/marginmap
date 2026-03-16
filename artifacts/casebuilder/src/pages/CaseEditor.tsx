@@ -4,12 +4,13 @@ import { useCase } from "@/hooks/use-cases";
 import { useScenarios, useCreateScenarioMutation, useDeleteScenarioMutation } from "@/hooks/use-scenarios";
 import { Link } from "wouter";
 import { ArrowLeft, Settings, Calculator, Coins, BarChart3, Share2, Plus, Trash2, Layers, Loader2 } from "lucide-react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { OverviewTab } from "./case-editor/OverviewTab";
 import { CostsTab } from "./case-editor/CostsTab";
 import { ValuesTab } from "./case-editor/ValuesTab";
 import { ModelTab } from "./case-editor/ModelTab";
-import { Copy, Download } from "lucide-react";
+import { ExportTab } from "./case-editor/ExportTab";
 
 export default function CaseEditor() {
   const [, params] = useRoute("/cases/:id");
@@ -206,39 +207,7 @@ export default function CaseEditor() {
             {activeTab === "costs" && <CostsTab caseId={caseId} scenarioId={activeScenarioId} />}
             {activeTab === "values" && <ValuesTab caseId={caseId} scenarioId={activeScenarioId} />}
             {activeTab === "model" && <ModelTab caseId={caseId} caseData={caseData} scenarioId={activeScenarioId} />}
-            {activeTab === "export" && (
-              <div className="max-w-2xl mx-auto space-y-6 mt-8">
-                <div className="bg-white dark:bg-slate-900 border border-border p-8 rounded-2xl shadow-sm text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Share2 className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">Share Business Case</h3>
-                  <p className="text-muted-foreground mb-6">Generate a read-only public link to share with stakeholders.</p>
-                  <div className="flex items-center gap-2 max-w-md mx-auto">
-                    <input
-                      readOnly
-                      value={caseData.shareToken ? `${window.location.origin}/cases/public/${caseData.shareToken}` : "Generate a share link first"}
-                      className="flex-1 bg-slate-50 dark:bg-slate-950 border border-border rounded-lg px-4 py-2 text-sm text-muted-foreground font-mono"
-                    />
-                    <button className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-foreground transition-colors">
-                      <Copy className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <button className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group">
-                    <Download className="w-8 h-8 text-slate-400 group-hover:text-primary mb-3" />
-                    <span className="font-semibold">Export to PDF</span>
-                    <span className="text-xs text-muted-foreground mt-1">Executive Summary</span>
-                  </button>
-                  <button className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group">
-                    <Download className="w-8 h-8 text-slate-400 group-hover:text-primary mb-3" />
-                    <span className="font-semibold">Export to Excel</span>
-                    <span className="text-xs text-muted-foreground mt-1">Full Data Model</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            {activeTab === "export" && <ExportTab caseId={caseId} caseData={caseData} scenarioId={activeScenarioId} />}
           </motion.div>
         </AnimatePresence>
       </div>
