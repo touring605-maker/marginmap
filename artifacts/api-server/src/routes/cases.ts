@@ -452,6 +452,24 @@ router.put("/cases/:id/objectives", async (req: Request, res: Response): Promise
   res.json(UpsertFinancialObjectiveResponse.parse(result));
 });
 
+router.delete("/cases/:id/objectives", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const params = GetFinancialObjectiveParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
+  await db.delete(financialObjectivesTable).where(eq(financialObjectivesTable.businessCaseId, params.data.id));
+  res.sendStatus(204);
+});
+
 router.get("/cases/:id/scenarios", async (req: Request, res: Response): Promise<void> => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });

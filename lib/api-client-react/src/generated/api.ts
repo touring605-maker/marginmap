@@ -2337,6 +2337,90 @@ export const useUpsertFinancialObjective = <
 };
 
 /**
+ * @summary Delete the financial objective for a case
+ */
+export const getDeleteFinancialObjectiveUrl = (id: number) => {
+  return `/api/cases/${id}/objectives`;
+};
+
+export const deleteFinancialObjective = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteFinancialObjectiveUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteFinancialObjectiveMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFinancialObjective>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteFinancialObjective>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteFinancialObjective"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteFinancialObjective>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteFinancialObjective(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteFinancialObjectiveMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteFinancialObjective>>
+>;
+
+export type DeleteFinancialObjectiveMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete the financial objective for a case
+ */
+export const useDeleteFinancialObjective = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFinancialObjective>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFinancialObjective>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteFinancialObjectiveMutationOptions(options));
+};
+
+/**
  * @summary List scenarios for a business case
  */
 export const getListScenariosUrl = (id: number) => {

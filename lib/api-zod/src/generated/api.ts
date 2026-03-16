@@ -493,6 +493,13 @@ export const UpsertFinancialObjectiveResponse = zod.object({
 });
 
 /**
+ * @summary Delete the financial objective for a case
+ */
+export const DeleteFinancialObjectiveParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary List scenarios for a business case
  */
 export const ListScenariosParams = zod.object({

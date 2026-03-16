@@ -78,7 +78,7 @@ router.post("/organizations/invite", async (req: Request, res: Response): Promis
     res.status(400).json({ error: "Email is required" });
     return;
   }
-  res.status(501).json({ message: "Invite functionality coming soon", email });
+  res.json({ message: "Invite functionality coming soon" });
 });
 
 export default router;

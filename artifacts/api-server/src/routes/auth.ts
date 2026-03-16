@@ -7,6 +7,7 @@ import {
   LogoutMobileSessionResponse,
 } from "@workspace/api-zod";
 import { db, usersTable } from "@workspace/db";
+import { getOrCreateOrg } from "./organizations";
 import {
   clearSession,
   getOidcConfig,
@@ -203,6 +204,8 @@ router.get("/auth/callback", async (req: Request, res: Response) => {
   const dbUser = await upsertUser(
     claims as unknown as Record<string, unknown>,
   );
+
+  await getOrCreateOrg(dbUser.id);
 
   const now = Math.floor(Date.now() / 1000);
   const sessionData: SessionData = {

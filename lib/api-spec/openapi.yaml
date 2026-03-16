@@ -544,6 +544,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FinancialObjective"
+    delete:
+      tags: [objectives]
+      operationId: deleteFinancialObjective
+      summary: Delete the financial objective for a case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "204":
+          description: Deleted
 
   /cases/{id}/scenarios:
     get:
