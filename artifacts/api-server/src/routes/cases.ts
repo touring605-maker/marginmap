@@ -74,6 +74,12 @@ async function verifyCaseOrgOwnership(caseId: number, userId: string): Promise<b
   return !!bc;
 }
 
+async function verifyScenarioBelongsToCase(scenarioId: number, businessCaseId: number): Promise<boolean> {
+  const [scenario] = await db.select({ id: scenariosTable.id }).from(scenariosTable)
+    .where(and(eq(scenariosTable.id, scenarioId), eq(scenariosTable.businessCaseId, businessCaseId)));
+  return !!scenario;
+}
+
 router.get("/cases", async (req: Request, res: Response): Promise<void> => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -204,8 +210,12 @@ router.post("/cases/:id/apply-template", async (req: Request, res: Response): Pr
     res.status(404).json({ error: "Business case not found" });
     return;
   }
-  const { templateId } = req.body as { templateId: string };
-  const template = industryTemplates.find(t => t.id === templateId);
+  const body = ApplyIndustryTemplateBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+  const template = industryTemplates.find(t => t.id === body.data.templateId);
   if (!template) {
     res.status(400).json({ error: "Template not found" });
     return;
@@ -239,7 +249,16 @@ router.get("/cases/:id/costs", async (req: Request, res: Response): Promise<void
     return;
   }
   const query = ListCostLineItemsQueryParams.safeParse(req.query);
-  const scenarioId = query.success ? query.data.scenarioId : undefined;
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const scenarioId = query.data.scenarioId;
+
+  if (scenarioId && !(await verifyScenarioBelongsToCase(scenarioId, params.data.id))) {
+    res.status(400).json({ error: "Scenario does not belong to this business case" });
+    return;
+  }
 
   let conditions = [eq(costLineItemsTable.businessCaseId, params.data.id)];
   if (scenarioId) {
@@ -266,6 +285,10 @@ router.post("/cases/:id/costs", async (req: Request, res: Response): Promise<voi
   const body = CreateCostLineItemBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+  if (body.data.scenarioId && !(await verifyScenarioBelongsToCase(body.data.scenarioId, params.data.id))) {
+    res.status(400).json({ error: "Scenario does not belong to this business case" });
     return;
   }
   const [item] = await db.insert(costLineItemsTable).values({
@@ -339,7 +362,16 @@ router.get("/cases/:id/values", async (req: Request, res: Response): Promise<voi
     return;
   }
   const query = ListValueDriversQueryParams.safeParse(req.query);
-  const scenarioId = query.success ? query.data.scenarioId : undefined;
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const scenarioId = query.data.scenarioId;
+
+  if (scenarioId && !(await verifyScenarioBelongsToCase(scenarioId, params.data.id))) {
+    res.status(400).json({ error: "Scenario does not belong to this business case" });
+    return;
+  }
 
   let conditions = [eq(valueDriversTable.businessCaseId, params.data.id)];
   if (scenarioId) {
@@ -366,6 +398,10 @@ router.post("/cases/:id/values", async (req: Request, res: Response): Promise<vo
   const body = CreateValueDriverBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+  if (body.data.scenarioId && !(await verifyScenarioBelongsToCase(body.data.scenarioId, params.data.id))) {
+    res.status(400).json({ error: "Scenario does not belong to this business case" });
     return;
   }
   const [item] = await db.insert(valueDriversTable).values({
@@ -564,7 +600,11 @@ router.get("/cases/:id/financial-model", async (req: Request, res: Response): Pr
     return;
   }
   const query = GetFinancialModelQueryParams.safeParse(req.query);
-  const scenarioId = query.success ? query.data.scenarioId : undefined;
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const scenarioId = query.data.scenarioId;
 
   const org = await getOrCreateOrg(req.user.id);
   const [bc] = await db.select().from(businessCasesTable).where(
@@ -572,6 +612,11 @@ router.get("/cases/:id/financial-model", async (req: Request, res: Response): Pr
   );
   if (!bc) {
     res.status(404).json({ error: "Business case not found" });
+    return;
+  }
+
+  if (scenarioId && !(await verifyScenarioBelongsToCase(scenarioId, params.data.id))) {
+    res.status(400).json({ error: "Scenario does not belong to this business case" });
     return;
   }
 
