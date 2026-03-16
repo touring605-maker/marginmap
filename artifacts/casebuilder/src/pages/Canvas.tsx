@@ -59,6 +59,8 @@ export default function Canvas() {
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
   const initialized = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const depsRef = useRef(deps);
+  depsRef.current = deps;
 
   const caseMap = useMemo(() => {
     const m = new Map<number, BusinessCase>();
@@ -142,7 +144,7 @@ export default function Canvas() {
 
   const handleDeleteDep = useCallback(
     (depId: number) => {
-      const dep = deps?.find((d) => d.id === depId);
+      const dep = depsRef.current?.find((d) => d.id === depId);
       deleteDep.mutate(
         { id: depId },
         {
@@ -157,7 +159,7 @@ export default function Canvas() {
         }
       );
     },
-    [deleteDep, queryClient, setNodes, debounceSavePositions, deps, invalidateFinancialModels]
+    [deleteDep, queryClient, setNodes, debounceSavePositions, invalidateFinancialModels]
   );
 
   useEffect(() => {
@@ -204,26 +206,35 @@ export default function Canvas() {
       setNodes(newNodes);
     }
     setEdges(newEdges);
-  }, [cases, positionsData, deps, casesLoading, posLoading, depsLoading, setNodes, setEdges, handleDeleteDep, modelMap, scenarioCountMap, debounceSavePositions]);
+  }, [casesLoading, posLoading, depsLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- init-only effect guarded by initialized.current
 
   useEffect(() => {
     if (!initialized.current) return;
-    setNodes((currentNodes) =>
-      currentNodes.map((node) => {
+    setNodes((currentNodes) => {
+      let changed = false;
+      const updated = currentNodes.map((node) => {
         const caseId = parseInt(node.id.replace("case-", ""), 10);
         const model = modelMap.get(caseId);
         const sc = scenarioCountMap.get(caseId);
+        const newNpv = model?.npv ?? null;
+        const newBreakeven = model?.breakevenMonth ?? null;
+        const newScenarioCount = sc ?? 0;
+        if (
+          node.data.npv === newNpv &&
+          node.data.breakevenMonth === newBreakeven &&
+          node.data.scenarioCount === newScenarioCount
+        ) {
+          return node;
+        }
+        changed = true;
         return {
           ...node,
-          data: {
-            ...node.data,
-            npv: model?.npv ?? null,
-            breakevenMonth: model?.breakevenMonth ?? null,
-            scenarioCount: sc ?? 0,
-          },
+          data: { ...node.data, npv: newNpv, breakevenMonth: newBreakeven, scenarioCount: newScenarioCount },
         };
-      })
-    );
+      });
+      return changed ? updated : currentNodes;
+    });
   }, [modelMap, scenarioCountMap, setNodes]);
 
   useEffect(() => {
