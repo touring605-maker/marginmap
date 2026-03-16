@@ -39,6 +39,7 @@ export function useUpdateCase() {
       onSuccess: (data, variables) => {
         queryClient.invalidateQueries({ queryKey: getListBusinessCasesQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetBusinessCaseQueryKey(variables.id) });
+        queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(variables.id) });
       }
     }
   });

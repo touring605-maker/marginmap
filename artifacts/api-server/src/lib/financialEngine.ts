@@ -212,7 +212,7 @@ export async function computeFinancialModel(
     const benefit = monthlyBenefits[i];
     cumulative += net;
 
-    if (breakevenMonth === null && cumulative >= 0 && i > 0) {
+    if (breakevenMonth === null && cumulative >= 0) {
       breakevenMonth = i + 1;
     }
 
