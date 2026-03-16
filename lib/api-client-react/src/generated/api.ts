@@ -35,6 +35,7 @@ import type {
   FinancialModel,
   FinancialObjective,
   FinancialObjectiveResponse,
+  FullCanvasState,
   GetExchangeRatesParams,
   GetFinancialModelParams,
   HandleBrowserLoginCallbackParams,
@@ -3212,6 +3213,94 @@ export const useCreateCaseDependency = <
 };
 
 /**
+ * @summary Replace a dependency
+ */
+export const getReplaceCaseDependencyUrl = (id: number) => {
+  return `/api/dependencies/${id}`;
+};
+
+export const replaceCaseDependency = async (
+  id: number,
+  updateCaseDependencyBody: UpdateCaseDependencyBody,
+  options?: RequestInit,
+): Promise<CaseDependency> => {
+  return customFetch<CaseDependency>(getReplaceCaseDependencyUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateCaseDependencyBody),
+  });
+};
+
+export const getReplaceCaseDependencyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replaceCaseDependency>>,
+    TError,
+    { id: number; data: BodyType<UpdateCaseDependencyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof replaceCaseDependency>>,
+  TError,
+  { id: number; data: BodyType<UpdateCaseDependencyBody> },
+  TContext
+> => {
+  const mutationKey = ["replaceCaseDependency"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof replaceCaseDependency>>,
+    { id: number; data: BodyType<UpdateCaseDependencyBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return replaceCaseDependency(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReplaceCaseDependencyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof replaceCaseDependency>>
+>;
+export type ReplaceCaseDependencyMutationBody =
+  BodyType<UpdateCaseDependencyBody>;
+export type ReplaceCaseDependencyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Replace a dependency
+ */
+export const useReplaceCaseDependency = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replaceCaseDependency>>,
+    TError,
+    { id: number; data: BodyType<UpdateCaseDependencyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof replaceCaseDependency>>,
+  TError,
+  { id: number; data: BodyType<UpdateCaseDependencyBody> },
+  TContext
+> => {
+  return useMutation(getReplaceCaseDependencyMutationOptions(options));
+};
+
+/**
  * @summary Update a dependency
  */
 export const getUpdateCaseDependencyUrl = (id: number) => {
@@ -3382,6 +3471,81 @@ export const useDeleteCaseDependency = <
 > => {
   return useMutation(getDeleteCaseDependencyMutationOptions(options));
 };
+
+/**
+ * @summary Get all cases with positions and dependencies
+ */
+export const getGetCanvasStateUrl = () => {
+  return `/api/canvas`;
+};
+
+export const getCanvasState = async (
+  options?: RequestInit,
+): Promise<FullCanvasState> => {
+  return customFetch<FullCanvasState>(getGetCanvasStateUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCanvasStateQueryKey = () => {
+  return [`/api/canvas`] as const;
+};
+
+export const getGetCanvasStateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCanvasState>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCanvasState>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCanvasStateQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCanvasState>>> = ({
+    signal,
+  }) => getCanvasState({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCanvasState>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCanvasStateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCanvasState>>
+>;
+export type GetCanvasStateQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all cases with positions and dependencies
+ */
+
+export function useGetCanvasState<
+  TData = Awaited<ReturnType<typeof getCanvasState>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCanvasState>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCanvasStateQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get all case positions on the canvas

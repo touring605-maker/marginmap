@@ -708,6 +708,29 @@ paths:
                 $ref: "#/components/schemas/CaseDependency"
 
   /dependencies/{id}:
+    put:
+      tags: [dependencies]
+      operationId: replaceCaseDependency
+      summary: Replace a dependency
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCaseDependencyBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseDependency"
     patch:
       tags: [dependencies]
       operationId: updateCaseDependency
@@ -744,6 +767,19 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /canvas:
+    get:
+      tags: [canvas]
+      operationId: getCanvasState
+      summary: Get all cases with positions and dependencies
+      responses:
+        "200":
+          description: Full canvas state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FullCanvasState"
 
   /canvas/positions:
     get:
@@ -1399,6 +1435,60 @@ components:
           type: [number, 'null']
         cascadeField:
           type: [string, 'null']
+
+    FullCanvasState:
+      type: object
+      required: [cases, dependencies]
+      properties:
+        cases:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasCaseNode"
+        dependencies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaseDependency"
+
+    CanvasCaseNode:
+      type: object
+      required: [id, name, orgId, ownerId, currency, timeHorizonMonths, discountRate, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        orgId:
+          type: integer
+        ownerId:
+          type: string
+        industry:
+          type: [string, 'null']
+        currency:
+          type: string
+        timeHorizonMonths:
+          type: integer
+        discountRate:
+          type: number
+        status:
+          type: string
+          enum: [draft, in_review, approved, rejected, archived]
+        shareToken:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        canvasPosition:
+          type: [object, 'null']
+          properties:
+            x:
+              type: number
+            y:
+              type: number
 
     CanvasState:
       type: object

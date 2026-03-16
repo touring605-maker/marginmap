@@ -536,6 +536,51 @@ export interface UpdateCaseDependencyBody {
   cascadeField?: string | null;
 }
 
+export type CanvasCaseNodeStatus =
+  (typeof CanvasCaseNodeStatus)[keyof typeof CanvasCaseNodeStatus];
+
+export const CanvasCaseNodeStatus = {
+  draft: "draft",
+  in_review: "in_review",
+  approved: "approved",
+  rejected: "rejected",
+  archived: "archived",
+} as const;
+
+/**
+ * @nullable
+ */
+export type CanvasCaseNodeCanvasPosition = {
+  x?: number;
+  y?: number;
+} | null;
+
+export interface CanvasCaseNode {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  orgId: number;
+  ownerId: string;
+  /** @nullable */
+  industry?: string | null;
+  currency: string;
+  timeHorizonMonths: number;
+  discountRate: number;
+  status: CanvasCaseNodeStatus;
+  /** @nullable */
+  shareToken?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  canvasPosition?: CanvasCaseNodeCanvasPosition;
+}
+
+export interface FullCanvasState {
+  cases: CanvasCaseNode[];
+  dependencies: CaseDependency[];
+}
+
 export interface CanvasNodePosition {
   caseId: number;
   x: number;

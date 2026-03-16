@@ -723,6 +723,31 @@ export const CreateCaseDependencyBody = zod.object({
 });
 
 /**
+ * @summary Replace a dependency
+ */
+export const ReplaceCaseDependencyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ReplaceCaseDependencyBody = zod.object({
+  dependencyType: zod
+    .enum(["sequential", "parallel", "conditional"])
+    .optional(),
+  conditionThreshold: zod.number().nullish(),
+  cascadeField: zod.string().nullish(),
+});
+
+export const ReplaceCaseDependencyResponse = zod.object({
+  id: zod.number(),
+  fromCaseId: zod.number(),
+  toCaseId: zod.number(),
+  dependencyType: zod.enum(["sequential", "parallel", "conditional"]),
+  conditionThreshold: zod.number().nullish(),
+  cascadeField: zod.string().nullish(),
+  canvasPositionJson: zod.object({}).passthrough().nullish(),
+});
+
+/**
  * @summary Update a dependency
  */
 export const UpdateCaseDependencyParams = zod.object({
@@ -752,6 +777,52 @@ export const UpdateCaseDependencyResponse = zod.object({
  */
 export const DeleteCaseDependencyParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get all cases with positions and dependencies
+ */
+export const GetCanvasStateResponse = zod.object({
+  cases: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      orgId: zod.number(),
+      ownerId: zod.string(),
+      industry: zod.string().nullish(),
+      currency: zod.string(),
+      timeHorizonMonths: zod.number(),
+      discountRate: zod.number(),
+      status: zod.enum([
+        "draft",
+        "in_review",
+        "approved",
+        "rejected",
+        "archived",
+      ]),
+      shareToken: zod.string().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+      canvasPosition: zod
+        .object({
+          x: zod.number().optional(),
+          y: zod.number().optional(),
+        })
+        .nullish(),
+    }),
+  ),
+  dependencies: zod.array(
+    zod.object({
+      id: zod.number(),
+      fromCaseId: zod.number(),
+      toCaseId: zod.number(),
+      dependencyType: zod.enum(["sequential", "parallel", "conditional"]),
+      conditionThreshold: zod.number().nullish(),
+      cascadeField: zod.string().nullish(),
+      canvasPositionJson: zod.object({}).passthrough().nullish(),
+    }),
+  ),
 });
 
 /**

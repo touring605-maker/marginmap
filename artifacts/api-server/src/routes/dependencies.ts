@@ -57,6 +57,39 @@ router.post("/dependencies", async (req: Request, res: Response): Promise<void> 
   res.status(201).json(ListCaseDependenciesResponseItem.parse(dep));
 });
 
+router.put("/dependencies/:id", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const params = UpdateCaseDependencyParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const body = UpdateCaseDependencyBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+  const org = await getOrCreateOrg(req.user.id);
+  const existing = await db
+    .select({ dep: caseDependenciesTable })
+    .from(caseDependenciesTable)
+    .innerJoin(businessCasesTable, eq(businessCasesTable.id, caseDependenciesTable.fromCaseId))
+    .where(and(eq(caseDependenciesTable.id, params.data.id), eq(businessCasesTable.orgId, org.id)));
+  if (existing.length === 0) {
+    res.status(404).json({ error: "Dependency not found" });
+    return;
+  }
+  const [dep] = await db.update(caseDependenciesTable).set(body.data).where(eq(caseDependenciesTable.id, params.data.id)).returning();
+  if (!dep) {
+    res.status(404).json({ error: "Dependency not found" });
+    return;
+  }
+  res.json(UpdateCaseDependencyResponse.parse(dep));
+});
+
 router.patch("/dependencies/:id", async (req: Request, res: Response): Promise<void> => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });

@@ -11,6 +11,7 @@ import {
   type Connection,
   type NodeTypes,
   type EdgeTypes,
+  type EdgeChange,
   BackgroundVariant,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -25,6 +26,7 @@ import {
   getGetCanvasPositionsQueryKey,
   getListCaseDependenciesQueryKey,
   getGetFinancialModelQueryOptions,
+  getGetFinancialModelQueryKey,
   getListScenariosQueryOptions,
   type BusinessCase,
   type FinancialModel,
@@ -102,18 +104,55 @@ export default function Canvas() {
     return m;
   }, [cases, scenarioQueries]);
 
+  const invalidateFinancialModels = useCallback(
+    (...caseIds: number[]) => {
+      caseIds.forEach((id) => {
+        queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(id) });
+      });
+    },
+    [queryClient]
+  );
+
+  const debounceSavePositions = useCallback(
+    (updatedNodes: Node[]) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        const positions = updatedNodes.map((n) => ({
+          caseId: parseInt(n.id.replace("case-", ""), 10),
+          x: n.position.x,
+          y: n.position.y,
+        }));
+        savePositions.mutate(
+          { data: { positions } },
+          {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: getGetCanvasPositionsQueryKey() });
+            },
+          }
+        );
+      }, 800);
+    },
+    [savePositions, queryClient]
+  );
+
   const handleDeleteDep = useCallback(
     (depId: number) => {
+      const dep = deps?.find((d) => d.id === depId);
       deleteDep.mutate(
         { id: depId },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: getListCaseDependenciesQueryKey() });
+            if (dep) invalidateFinancialModels(dep.fromCaseId, dep.toCaseId);
+            setNodes((currentNodes) => {
+              debounceSavePositions(currentNodes);
+              return currentNodes;
+            });
           },
         }
       );
     },
-    [deleteDep, queryClient]
+    [deleteDep, queryClient, setNodes, debounceSavePositions, deps, invalidateFinancialModels]
   );
 
   useEffect(() => {
@@ -200,34 +239,33 @@ export default function Canvas() {
     );
   }, [deps, setEdges, handleDeleteDep]);
 
-  const debounceSavePositions = useCallback(
-    (updatedNodes: Node[]) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        const positions = updatedNodes.map((n) => ({
-          caseId: parseInt(n.id.replace("case-", ""), 10),
-          x: n.position.x,
-          y: n.position.y,
-        }));
-        savePositions.mutate(
-          { data: { positions } },
-          {
-            onSuccess: () => {
-              queryClient.invalidateQueries({ queryKey: getGetCanvasPositionsQueryKey() });
-            },
-          }
-        );
-      }, 800);
-    },
-    [savePositions, queryClient]
-  );
-
-  const onNodeDragStop = useCallback(() => {
+  const saveCurrentPositions = useCallback(() => {
     setNodes((currentNodes) => {
       debounceSavePositions(currentNodes);
       return currentNodes;
     });
   }, [debounceSavePositions, setNodes]);
+
+  const onNodeDragStop = useCallback(() => {
+    saveCurrentPositions();
+  }, [saveCurrentPositions]);
+
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      const removals = changes.filter((c) => c.type === "remove");
+      if (removals.length > 0) {
+        removals.forEach((r) => {
+          if (r.type === "remove") {
+            const depId = parseInt(r.id.replace("dep-", ""), 10);
+            if (!isNaN(depId)) handleDeleteDep(depId);
+          }
+        });
+        return;
+      }
+      onEdgesChange(changes);
+    },
+    [onEdgesChange, handleDeleteDep]
+  );
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -256,12 +294,14 @@ export default function Canvas() {
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: getListCaseDependenciesQueryKey() });
+            invalidateFinancialModels(fromId, toId);
             setPendingConnection(null);
+            saveCurrentPositions();
           },
         }
       );
     },
-    [pendingConnection, createDep, queryClient]
+    [pendingConnection, createDep, queryClient, saveCurrentPositions, invalidateFinancialModels]
   );
 
   const handleAutoLayout = useCallback(() => {
@@ -302,7 +342,7 @@ export default function Canvas() {
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
