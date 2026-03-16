@@ -205,7 +205,7 @@ export default function CaseEditor() {
             {activeTab === "overview" && <OverviewTab caseId={caseId} caseData={caseData} />}
             {activeTab === "costs" && <CostsTab caseId={caseId} scenarioId={activeScenarioId} />}
             {activeTab === "values" && <ValuesTab caseId={caseId} scenarioId={activeScenarioId} />}
-            {activeTab === "model" && <ModelTab caseId={caseId} />}
+            {activeTab === "model" && <ModelTab caseId={caseId} caseData={caseData} scenarioId={activeScenarioId} />}
             {activeTab === "export" && (
               <div className="max-w-2xl mx-auto space-y-6 mt-8">
                 <div className="bg-white dark:bg-slate-900 border border-border p-8 rounded-2xl shadow-sm text-center">

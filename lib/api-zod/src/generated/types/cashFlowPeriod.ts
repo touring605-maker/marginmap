@@ -13,4 +13,7 @@ export interface CashFlowPeriod {
   benefits: number;
   netCashFlow: number;
   cumulativeNet: number;
+  cumulativeNpv: number;
+  /** @nullable */
+  runningIrr: number | null;
 }

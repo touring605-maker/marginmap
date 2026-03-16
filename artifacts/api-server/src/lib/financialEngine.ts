@@ -1,5 +1,5 @@
-import { eq, and, isNull } from "drizzle-orm";
-import { db, costLineItemsTable, valueDriversTable, financialObjectivesTable } from "@workspace/db";
+import { eq, and, isNull, gt } from "drizzle-orm";
+import { db, costLineItemsTable, valueDriversTable, financialObjectivesTable, exchangeRatesTable } from "@workspace/db";
 import type { BusinessCase } from "@workspace/db";
 
 interface CashFlowPeriod {
@@ -9,6 +9,8 @@ interface CashFlowPeriod {
   benefits: number;
   netCashFlow: number;
   cumulativeNet: number;
+  cumulativeNpv: number;
+  runningIrr: number | null;
 }
 
 interface ObjectiveProgress {
@@ -37,13 +39,58 @@ const confidenceWeights: Record<string, number> = {
   low: 0.4,
 };
 
-function calculateNPV(cashFlows: number[], discountRate: number): number {
+const CACHE_TTL_MS = 60 * 60 * 1000;
+
+async function getExchangeRate(from: string, to: string): Promise<number> {
+  if (from === to) return 1;
+
+  const oneHourAgo = new Date(Date.now() - CACHE_TTL_MS);
+  const [cached] = await db.select().from(exchangeRatesTable).where(
+    and(
+      eq(exchangeRatesTable.baseCurrency, from),
+      eq(exchangeRatesTable.targetCurrency, to),
+      gt(exchangeRatesTable.fetchedAt, oneHourAgo)
+    )
+  );
+
+  if (cached) return cached.rate;
+
+  try {
+    const res = await fetch(`https://open.er-api.com/v6/latest/${from}`);
+    const data = await res.json() as { result: string; rates: Record<string, number> };
+
+    if (data.result !== "success") return 1;
+
+    const now = new Date();
+    const values = Object.entries(data.rates).map(([target, rate]) => ({
+      baseCurrency: from,
+      targetCurrency: target,
+      rate,
+      fetchedAt: now,
+    }));
+
+    await db.delete(exchangeRatesTable).where(eq(exchangeRatesTable.baseCurrency, from));
+    if (values.length > 0) {
+      await db.insert(exchangeRatesTable).values(values);
+    }
+
+    return data.rates[to] ?? 1;
+  } catch {
+    return 1;
+  }
+}
+
+function calculateNPV(benefitFlows: number[], discountRate: number): number {
   const monthlyRate = discountRate / 12;
-  return cashFlows.reduce((npv, cf, i) => npv + cf / Math.pow(1 + monthlyRate, i + 1), 0);
+  return benefitFlows.reduce((npv, cf, i) => npv + cf / Math.pow(1 + monthlyRate, i + 1), 0);
 }
 
 function calculateIRR(cashFlows: number[], maxIter = 1000, tolerance = 1e-7): number | null {
   if (cashFlows.length < 2) return null;
+
+  const hasPositive = cashFlows.some(cf => cf > 0);
+  const hasNegative = cashFlows.some(cf => cf < 0);
+  if (!hasPositive || !hasNegative) return null;
 
   let rate = 0.1 / 12;
 
@@ -65,6 +112,29 @@ function calculateIRR(cashFlows: number[], maxIter = 1000, tolerance = 1e-7): nu
   return null;
 }
 
+function computeMonthlyCost(cost: { amount: number; frequency: string; escalationRate: number | null; currency?: string | null }, month: number, fxRate: number): number {
+  const yearIndex = Math.floor(month / 12);
+  const escalation = cost.escalationRate ? Math.pow(1 + cost.escalationRate / 100, yearIndex) : 1;
+  let val = 0;
+
+  if (cost.frequency === "once" && month === 0) {
+    val = cost.amount;
+  } else if (cost.frequency === "monthly") {
+    val = cost.amount * escalation;
+  } else if (cost.frequency === "annually" && month % 12 === 0) {
+    val = cost.amount * escalation;
+  }
+
+  return val * fxRate;
+}
+
+function computeMonthlyBenefit(value: { annualValue: number; monthsToRealize: number; currency?: string | null }, month: number, fxRate: number): number {
+  if (month >= value.monthsToRealize) {
+    return (value.annualValue / 12) * fxRate;
+  }
+  return 0;
+}
+
 export async function computeFinancialModel(
   bc: BusinessCase,
   scenarioId?: number | null
@@ -81,88 +151,107 @@ export async function computeFinancialModel(
   const values = await db.select().from(valueDriversTable).where(and(...valueConditions));
   const [objective] = await db.select().from(financialObjectivesTable).where(eq(financialObjectivesTable.businessCaseId, bc.id));
 
+  const caseCurrency = bc.currency;
+
+  const costCurrencies = new Set(costs.map(c => c.currency ?? caseCurrency));
+  const valueCurrencies = new Set(values.map(v => v.currency ?? caseCurrency));
+  const allCurrencies = new Set([...costCurrencies, ...valueCurrencies]);
+  allCurrencies.delete(caseCurrency);
+
+  const fxRates: Record<string, number> = {};
+  for (const cur of allCurrencies) {
+    fxRates[cur] = await getExchangeRate(cur, caseCurrency);
+  }
+  fxRates[caseCurrency] = 1;
+
   const months = bc.timeHorizonMonths;
-  const monthlyFlows: number[] = [];
+  const discountRate = bc.discountRate;
+  const monthlyRate = discountRate / 12;
+
+  const monthlyBenefits: number[] = [];
+  const monthlyNetFlows: number[] = [];
   let totalInvestment = 0;
   let totalExpectedValue = 0;
-  let confidenceAdjustedValue = 0;
 
   for (let m = 0; m < months; m++) {
     let monthlyCost = 0;
     let monthlyBenefit = 0;
 
     for (const cost of costs) {
-      const yearIndex = Math.floor(m / 12);
-      const escalation = cost.escalationRate ? Math.pow(1 + cost.escalationRate / 100, yearIndex) : 1;
-
-      if (cost.frequency === "once" && m === 0) {
-        monthlyCost += cost.amount;
-      } else if (cost.frequency === "monthly") {
-        monthlyCost += cost.amount * escalation;
-      } else if (cost.frequency === "annually" && m % 12 === 0) {
-        monthlyCost += cost.amount * escalation;
-      }
+      const fxRate = fxRates[cost.currency ?? caseCurrency] ?? 1;
+      monthlyCost += computeMonthlyCost(cost, m, fxRate);
     }
 
     for (const value of values) {
-      if (m >= value.monthsToRealize) {
-        monthlyBenefit += value.annualValue / 12;
-      }
+      const fxRate = fxRates[value.currency ?? caseCurrency] ?? 1;
+      monthlyBenefit += computeMonthlyBenefit(value, m, fxRate);
     }
 
     totalInvestment += monthlyCost;
     totalExpectedValue += monthlyBenefit;
-
-    monthlyFlows.push(monthlyBenefit - monthlyCost);
+    monthlyBenefits.push(monthlyBenefit);
+    monthlyNetFlows.push(monthlyBenefit - monthlyCost);
   }
 
+  let confidenceAdjustedValue = 0;
   for (const value of values) {
+    const fxRate = fxRates[value.currency ?? caseCurrency] ?? 1;
     const activeMonths = Math.max(0, months - value.monthsToRealize);
     const weight = confidenceWeights[value.confidenceLevel] ?? 0.7;
-    confidenceAdjustedValue += (value.annualValue / 12) * activeMonths * weight;
+    confidenceAdjustedValue += (value.annualValue / 12) * activeMonths * weight * fxRate;
   }
 
   let cumulative = 0;
   let breakevenMonth: number | null = null;
-  const cashFlows: CashFlowPeriod[] = monthlyFlows.map((net, i) => {
+  let cumulativeDiscountedBenefits = 0;
+
+  const cashFlows: CashFlowPeriod[] = [];
+
+  for (let i = 0; i < months; i++) {
+    const net = monthlyNetFlows[i];
+    const benefit = monthlyBenefits[i];
     cumulative += net;
+
     if (breakevenMonth === null && cumulative >= 0 && i > 0) {
       breakevenMonth = i + 1;
     }
 
+    cumulativeDiscountedBenefits += benefit / Math.pow(1 + monthlyRate, i + 1);
+
+    const netFlowsUpToNow = monthlyNetFlows.slice(0, i + 1);
+    const runningIrr = i >= 1 ? calculateIRR(netFlowsUpToNow) : null;
+
     let monthlyCost = 0;
     let monthlyBenefit = 0;
     for (const cost of costs) {
-      const yearIndex = Math.floor(i / 12);
-      const escalation = cost.escalationRate ? Math.pow(1 + cost.escalationRate / 100, yearIndex) : 1;
-      if (cost.frequency === "once" && i === 0) monthlyCost += cost.amount;
-      else if (cost.frequency === "monthly") monthlyCost += cost.amount * escalation;
-      else if (cost.frequency === "annually" && i % 12 === 0) monthlyCost += cost.amount * escalation;
+      const fxRate = fxRates[cost.currency ?? caseCurrency] ?? 1;
+      monthlyCost += computeMonthlyCost(cost, i, fxRate);
     }
     for (const value of values) {
-      if (i >= value.monthsToRealize) {
-        monthlyBenefit += value.annualValue / 12;
-      }
+      const fxRate = fxRates[value.currency ?? caseCurrency] ?? 1;
+      monthlyBenefit += computeMonthlyBenefit(value, i, fxRate);
     }
 
-    return {
+    cashFlows.push({
       period: i + 1,
       periodLabel: `Month ${i + 1}`,
       costs: Math.round(monthlyCost * 100) / 100,
       benefits: Math.round(monthlyBenefit * 100) / 100,
       netCashFlow: Math.round(net * 100) / 100,
       cumulativeNet: Math.round(cumulative * 100) / 100,
-    };
-  });
+      cumulativeNpv: Math.round(cumulativeDiscountedBenefits * 100) / 100,
+      runningIrr: runningIrr !== null ? Math.round(runningIrr * 10000) / 10000 : null,
+    });
+  }
 
-  const npv = calculateNPV(monthlyFlows, bc.discountRate);
-  const irr = calculateIRR(monthlyFlows);
+  const npv = calculateNPV(monthlyBenefits, discountRate);
+  const irr = calculateIRR(monthlyNetFlows);
   const roi = totalInvestment > 0 ? (totalExpectedValue - totalInvestment) / totalInvestment : 0;
 
   let objectiveProgress: ObjectiveProgress | null = null;
   if (objective) {
     const projectedAtTarget = cashFlows.find(cf => cf.period === objective.targetMonth);
-    const projectedValue = projectedAtTarget ? projectedAtTarget.cumulativeNet : cumulative;
+    const projectedValue = projectedAtTarget ? projectedAtTarget.cumulativeNpv : (cashFlows.length > 0 ? cashFlows[cashFlows.length - 1].cumulativeNpv : 0);
     objectiveProgress = {
       targetValue: objective.targetValue,
       targetMonth: objective.targetMonth,
