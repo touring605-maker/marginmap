@@ -95,7 +95,7 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Net Present Value (NPV)"
-          value={formatCurrency(data.npv)}
+          value={formatCurrencyCompact(data.npv)}
           subtitle="Full horizon, discounted"
           icon={<DollarSign className="w-5 h-5" />}
           trend={{ value: data.npv > 0 ? "Positive" : "Negative", isPositive: data.npv > 0 }}
@@ -122,17 +122,17 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Total Investment"
-          value={formatCurrency(data.totalInvestment)}
+          value={formatCurrencyCompact(data.totalInvestment)}
           icon={<Wallet className="w-5 h-5" />}
         />
         <MetricCard
           title="Total Expected Value"
-          value={formatCurrency(data.totalExpectedValue)}
+          value={formatCurrencyCompact(data.totalExpectedValue)}
           icon={<DollarSign className="w-5 h-5" />}
         />
         <MetricCard
           title="Confidence-Adjusted Value"
-          value={formatCurrency(data.confidenceAdjustedValue)}
+          value={formatCurrencyCompact(data.confidenceAdjustedValue)}
           icon={<Shield className="w-5 h-5" />}
         />
         <MetricCard
