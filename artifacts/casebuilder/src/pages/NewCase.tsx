@@ -53,7 +53,7 @@ export default function NewCase() {
           industry: formData.industry,
           currency: formData.currency,
           timeHorizonMonths: parseInt(formData.timeHorizonMonths, 10),
-          discountRate: parseFloat(formData.discountRate),
+          discountRate: parseFloat(formData.discountRate) / 100,
         },
       },
       {

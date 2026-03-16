@@ -17,7 +17,7 @@ export function OverviewTab({ caseId, caseData }: { caseId: number; caseData: Bu
     industry: caseData.industry || "",
     currency: caseData.currency,
     timeHorizonMonths: String(caseData.timeHorizonMonths),
-    discountRate: String(caseData.discountRate),
+    discountRate: String(caseData.discountRate * 100),
     status: caseData.status,
   });
 
@@ -45,7 +45,7 @@ export function OverviewTab({ caseId, caseData }: { caseId: number; caseData: Bu
         industry: formData.industry || undefined,
         currency: formData.currency,
         timeHorizonMonths: parseInt(formData.timeHorizonMonths, 10),
-        discountRate: parseFloat(formData.discountRate),
+        discountRate: parseFloat(formData.discountRate) / 100,
         status: formData.status as UpdateBusinessCaseBodyStatus,
       },
     });
