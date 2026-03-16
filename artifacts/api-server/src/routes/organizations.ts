@@ -68,5 +68,18 @@ router.get("/organizations/members", async (req: Request, res: Response): Promis
   res.json(ListOrganizationMembersResponse.parse(members));
 });
 
+router.post("/organizations/invite", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { email } = req.body as { email?: string };
+  if (!email || typeof email !== "string") {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+  res.status(501).json({ message: "Invite functionality coming soon", email });
+});
+
 export default router;
 export { getOrCreateOrg };

@@ -3,6 +3,7 @@ import { usersTable } from "./auth";
 import { organizationsTable } from "./organizations";
 
 export const caseStatusEnum = pgEnum("case_status", ["draft", "in_review", "approved"]);
+export const caseScenarioModeEnum = pgEnum("case_scenario_mode", ["single", "multi"]);
 
 export const businessCasesTable = pgTable("business_cases", {
   id: serial("id").primaryKey(),
@@ -14,6 +15,7 @@ export const businessCasesTable = pgTable("business_cases", {
   currency: varchar("currency", { length: 10 }).notNull().default("USD"),
   timeHorizonMonths: integer("time_horizon_months").notNull().default(36),
   discountRate: real("discount_rate").notNull().default(0.10),
+  scenarioType: caseScenarioModeEnum("scenario_type").notNull().default("single"),
   status: caseStatusEnum("status").notNull().default("draft"),
   shareToken: varchar("share_token").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

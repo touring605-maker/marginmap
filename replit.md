@@ -113,3 +113,5 @@ Generated React Query hooks and fetch client. Custom fetch includes `credentials
 - Financial engine: confidence weights — high=1.0, medium=0.7, low=0.4
 - Exchange rates: cached in DB with 1-hour TTL, fetched from `open.er-api.com/v6/latest/{base}`
 - `scenariosTable` is referenced by `costLineItemsTable` and `valueDriversTable` — import order matters
+- IDOR protection: all case sub-resource routes (costs, values, objectives, scenarios, apply-template) call `verifyCaseOrgOwnership(caseId, userId)` before processing — returns 404 if the case doesn't belong to the user's org
+- DB enums: `scenario_type` enum = `base|optimistic|conservative` (used in scenarios table), `case_scenario_mode` enum = `single|multi` (used in business_cases table) — these are separate PG enums to avoid collision

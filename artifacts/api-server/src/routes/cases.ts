@@ -67,6 +67,13 @@ import { industryTemplates } from "../lib/industryTemplates";
 
 const router: IRouter = Router();
 
+async function verifyCaseOrgOwnership(caseId: number, userId: string): Promise<boolean> {
+  const org = await getOrCreateOrg(userId);
+  const [bc] = await db.select({ id: businessCasesTable.id }).from(businessCasesTable)
+    .where(and(eq(businessCasesTable.id, caseId), eq(businessCasesTable.orgId, org.id)));
+  return !!bc;
+}
+
 router.get("/cases", async (req: Request, res: Response): Promise<void> => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -174,6 +181,10 @@ router.post("/cases/:id/apply-template", async (req: Request, res: Response): Pr
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
   const { templateId } = req.body as { templateId: string };
   const template = industryTemplates.find(t => t.id === templateId);
   if (!template) {
@@ -204,6 +215,10 @@ router.get("/cases/:id/costs", async (req: Request, res: Response): Promise<void
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
   const query = ListCostLineItemsQueryParams.safeParse(req.query);
   const scenarioId = query.success ? query.data.scenarioId : undefined;
 
@@ -223,6 +238,10 @@ router.post("/cases/:id/costs", async (req: Request, res: Response): Promise<voi
   const params = CreateCostLineItemParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
     return;
   }
   const body = CreateCostLineItemBody.safeParse(req.body);
@@ -245,6 +264,10 @@ router.patch("/cases/:id/costs/:costId", async (req: Request, res: Response): Pr
   const params = UpdateCostLineItemParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
     return;
   }
   const body = UpdateCostLineItemBody.safeParse(req.body);
@@ -272,6 +295,10 @@ router.delete("/cases/:id/costs/:costId", async (req: Request, res: Response): P
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
   await db.delete(costLineItemsTable).where(
     and(eq(costLineItemsTable.id, params.data.costId), eq(costLineItemsTable.businessCaseId, params.data.id))
   );
@@ -286,6 +313,10 @@ router.get("/cases/:id/values", async (req: Request, res: Response): Promise<voi
   const params = ListValueDriversParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
     return;
   }
   const query = ListValueDriversQueryParams.safeParse(req.query);
@@ -309,6 +340,10 @@ router.post("/cases/:id/values", async (req: Request, res: Response): Promise<vo
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
   const body = CreateValueDriverBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -329,6 +364,10 @@ router.patch("/cases/:id/values/:valueId", async (req: Request, res: Response): 
   const params = UpdateValueDriverParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
     return;
   }
   const body = UpdateValueDriverBody.safeParse(req.body);
@@ -356,6 +395,10 @@ router.delete("/cases/:id/values/:valueId", async (req: Request, res: Response):
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
   await db.delete(valueDriversTable).where(
     and(eq(valueDriversTable.id, params.data.valueId), eq(valueDriversTable.businessCaseId, params.data.id))
   );
@@ -372,6 +415,10 @@ router.get("/cases/:id/objectives", async (req: Request, res: Response): Promise
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
   const [obj] = await db.select().from(financialObjectivesTable).where(eq(financialObjectivesTable.businessCaseId, params.data.id));
   res.json(GetFinancialObjectiveResponse.parse({ objective: obj || null }));
 });
@@ -384,6 +431,10 @@ router.put("/cases/:id/objectives", async (req: Request, res: Response): Promise
   const params = UpsertFinancialObjectiveParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
     return;
   }
   const body = UpsertFinancialObjectiveBody.safeParse(req.body);
@@ -411,6 +462,10 @@ router.get("/cases/:id/scenarios", async (req: Request, res: Response): Promise<
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
   const items = await db.select().from(scenariosTable).where(eq(scenariosTable.businessCaseId, params.data.id));
   res.json(ListScenariosResponse.parse(items));
 });
@@ -423,6 +478,10 @@ router.post("/cases/:id/scenarios", async (req: Request, res: Response): Promise
   const params = CreateScenarioParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
     return;
   }
   const body = CreateScenarioBody.safeParse(req.body);
@@ -445,6 +504,10 @@ router.delete("/cases/:id/scenarios/:scenarioId", async (req: Request, res: Resp
   const params = DeleteScenarioParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
     return;
   }
   await db.delete(scenariosTable).where(
