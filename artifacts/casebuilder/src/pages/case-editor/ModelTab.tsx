@@ -96,7 +96,7 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
         <MetricCard
           title="Net Present Value (NPV)"
           value={formatCurrency(data.npv)}
-          subtitle="Discounted net cash flows"
+          subtitle="Full horizon, discounted"
           icon={<DollarSign className="w-5 h-5" />}
           trend={{ value: data.npv > 0 ? "Positive" : "Negative", isPositive: data.npv > 0 }}
         />

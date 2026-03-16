@@ -33,15 +33,15 @@ export function MetricCard({ title, value, subtitle, icon, trend, className = ""
         )}
       </div>
       
-      <div className="relative">
-        <div className="text-3xl font-display font-bold text-slate-900 dark:text-white tracking-tight">
+      <div className="relative min-w-0">
+        <div className="text-2xl font-display font-bold text-slate-900 dark:text-white tracking-tight break-words">
           {value}
         </div>
         
         {(subtitle || trend) && (
-          <div className="mt-2 flex items-center gap-2 text-sm">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             {trend && (
-              <span className={`font-medium px-2 py-0.5 rounded-md ${
+              <span className={`font-medium px-2 py-0.5 rounded-md shrink-0 ${
                 trend.isPositive 
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" 
                   : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
@@ -49,7 +49,7 @@ export function MetricCard({ title, value, subtitle, icon, trend, className = ""
                 {trend.isPositive ? "+" : ""}{trend.value}
               </span>
             )}
-            {subtitle && <span className="text-slate-500 dark:text-slate-400">{subtitle}</span>}
+            {subtitle && <span className="text-slate-500 dark:text-slate-400 text-xs">{subtitle}</span>}
           </div>
         )}
       </div>
