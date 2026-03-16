@@ -1,5 +1,5 @@
 import { eq, and, isNull, gt } from "drizzle-orm";
-import { db, costLineItemsTable, valueDriversTable, financialObjectivesTable, exchangeRatesTable } from "@workspace/db";
+import { db, costLineItemsTable, valueDriversTable, financialObjectivesTable, exchangeRatesTable, caseDependenciesTable, businessCasesTable } from "@workspace/db";
 import type { BusinessCase } from "@workspace/db";
 
 interface CashFlowPeriod {
@@ -135,9 +135,50 @@ function computeMonthlyBenefit(value: { annualValue: number; monthsToRealize: nu
   return 0;
 }
 
-export async function computeFinancialModel(
+async function getCascadedValueFromUpstream(
+  targetCaseId: number,
+  targetCurrency: string
+): Promise<number> {
+  const incomingDeps = await db
+    .select()
+    .from(caseDependenciesTable)
+    .where(eq(caseDependenciesTable.toCaseId, targetCaseId));
+
+  let cascadedTotal = 0;
+  for (const dep of incomingDeps) {
+    if (!dep.cascadeField) continue;
+
+    const [sourceCase] = await db
+      .select()
+      .from(businessCasesTable)
+      .where(eq(businessCasesTable.id, dep.fromCaseId));
+    if (!sourceCase) continue;
+
+    const sourceModel = await computeFinancialModelInternal(sourceCase, null, true);
+    let sourceValue = 0;
+    switch (dep.cascadeField) {
+      case "npv": sourceValue = sourceModel.npv; break;
+      case "totalAnnualSavings": sourceValue = sourceModel.totalExpectedValue / Math.max(1, sourceCase.timeHorizonMonths / 12); break;
+      case "totalExpectedValue": sourceValue = sourceModel.totalExpectedValue; break;
+      case "confidenceAdjustedValue": sourceValue = sourceModel.confidenceAdjustedValue; break;
+      default: continue;
+    }
+
+    if (dep.dependencyType === "conditional" && dep.conditionThreshold != null) {
+      if (sourceValue < dep.conditionThreshold) continue;
+    }
+
+    const fxRate = await getExchangeRate(sourceCase.currency, targetCurrency);
+    cascadedTotal += sourceValue * fxRate;
+  }
+
+  return cascadedTotal;
+}
+
+async function computeFinancialModelInternal(
   bc: BusinessCase,
-  scenarioId?: number | null
+  scenarioId?: number | null,
+  skipCascade?: boolean
 ): Promise<FinancialModelResult> {
   const costConditions = scenarioId
     ? [eq(costLineItemsTable.businessCaseId, bc.id), eq(costLineItemsTable.scenarioId, scenarioId)]
@@ -164,6 +205,12 @@ export async function computeFinancialModel(
   }
   fxRates[caseCurrency] = 1;
 
+  let cascadedAnnualValue = 0;
+  if (!skipCascade) {
+    const cascadedTotal = await getCascadedValueFromUpstream(bc.id, caseCurrency);
+    cascadedAnnualValue = cascadedTotal;
+  }
+
   const months = bc.timeHorizonMonths;
   const discountRate = bc.discountRate;
   const monthlyRate = discountRate / 12;
@@ -185,6 +232,10 @@ export async function computeFinancialModel(
     for (const value of values) {
       const fxRate = fxRates[value.currency ?? caseCurrency] ?? 1;
       monthlyBenefit += computeMonthlyBenefit(value, m, fxRate);
+    }
+
+    if (cascadedAnnualValue > 0) {
+      monthlyBenefit += cascadedAnnualValue / 12;
     }
 
     totalInvestment += monthlyCost;
@@ -272,4 +323,11 @@ export async function computeFinancialModel(
     confidenceAdjustedValue: Math.round(confidenceAdjustedValue * 100) / 100,
     objectiveProgress,
   };
+}
+
+export async function computeFinancialModel(
+  bc: BusinessCase,
+  scenarioId?: number | null
+): Promise<FinancialModelResult> {
+  return computeFinancialModelInternal(bc, scenarioId, false);
 }

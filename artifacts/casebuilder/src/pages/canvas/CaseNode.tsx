@@ -35,7 +35,7 @@ function CaseNodeComponent({ data }: NodeProps) {
   return (
     <div
       className="bg-card border border-border rounded-xl shadow-lg min-w-[220px] max-w-[260px] cursor-pointer hover:shadow-xl transition-shadow"
-      onDoubleClick={() => setLocation(`/cases/${caseData.id}`)}
+      onClick={() => setLocation(`/cases/${caseData.id}`)}
     >
       <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-primary !border-2 !border-background" />
 
