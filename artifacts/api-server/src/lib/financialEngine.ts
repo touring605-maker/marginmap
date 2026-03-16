@@ -10,6 +10,8 @@ interface CashFlowPeriod {
   netCashFlow: number;
   cumulativeNet: number;
   cumulativeNpv: number;
+  netNpv: number;
+  cumulativeNetNpv: number;
   runningIrr: number | null;
 }
 
@@ -255,6 +257,7 @@ async function computeFinancialModelInternal(
   let cumulative = 0;
   let breakevenMonth: number | null = null;
   let cumulativeDiscountedBenefits = 0;
+  let cumulativeNetNpv = 0;
 
   const cashFlows: CashFlowPeriod[] = [];
 
@@ -267,7 +270,10 @@ async function computeFinancialModelInternal(
       breakevenMonth = i + 1;
     }
 
-    cumulativeDiscountedBenefits += benefit / Math.pow(1 + monthlyRate, i + 1);
+    const discountFactor = Math.pow(1 + monthlyRate, i + 1);
+    cumulativeDiscountedBenefits += benefit / discountFactor;
+    const netNpv = net / discountFactor;
+    cumulativeNetNpv += netNpv;
 
     const netFlowsUpToNow = monthlyNetFlows.slice(0, i + 1);
     const runningIrr = i >= 1 ? calculateIRR(netFlowsUpToNow) : null;
@@ -294,6 +300,8 @@ async function computeFinancialModelInternal(
       netCashFlow: Math.round(net * 100) / 100,
       cumulativeNet: Math.round(cumulative * 100) / 100,
       cumulativeNpv: Math.round(cumulativeDiscountedBenefits * 100) / 100,
+      netNpv: Math.round(netNpv * 100) / 100,
+      cumulativeNetNpv: Math.round(cumulativeNetNpv * 100) / 100,
       runningIrr: runningIrr !== null ? Math.round(runningIrr * 10000) / 10000 : null,
     });
   }

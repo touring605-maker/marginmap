@@ -14,6 +14,8 @@ export interface CashFlowPeriod {
   netCashFlow: number;
   cumulativeNet: number;
   cumulativeNpv: number;
+  netNpv: number;
+  cumulativeNetNpv: number;
   /** @nullable */
   runningIrr: number | null;
 }

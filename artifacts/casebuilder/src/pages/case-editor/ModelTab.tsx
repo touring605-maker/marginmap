@@ -223,6 +223,15 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
                 strokeDasharray="4 4"
                 dot={false}
               />
+              <Line
+                type="monotone"
+                dataKey="cumulativeNetNpv"
+                name="Cumulative Net NPV"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="6 3"
+                dot={false}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -231,7 +240,7 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
       <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-border">
           <h3 className="text-lg font-bold">Monthly Breakdown</h3>
-          <p className="text-sm text-muted-foreground mt-1">Period-by-period cumulative NPV (discounted benefits) and running IRR</p>
+          <p className="text-sm text-muted-foreground mt-1">Period-by-period discounted cash flows, cumulative NPV, net NPV, and running IRR</p>
         </div>
         <div className="max-h-[400px] overflow-auto">
           <table className="w-full text-sm">
@@ -243,6 +252,8 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Net Cash Flow</th>
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Cumulative Net</th>
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Cumulative NPV</th>
+                <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Net NPV</th>
+                <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Cumulative Net NPV</th>
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Running IRR</th>
               </tr>
             </thead>
@@ -260,6 +271,12 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
                   </td>
                   <td className="px-6 py-3 text-right text-indigo-600 dark:text-indigo-400 font-medium">
                     {formatCurrency(cf.cumulativeNpv)}
+                  </td>
+                  <td className={`px-6 py-3 text-right font-medium ${cf.netNpv >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {formatCurrency(cf.netNpv)}
+                  </td>
+                  <td className={`px-6 py-3 text-right font-medium ${cf.cumulativeNetNpv >= 0 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {formatCurrency(cf.cumulativeNetNpv)}
                   </td>
                   <td className="px-6 py-3 text-right">
                     {cf.runningIrr !== null && cf.runningIrr !== undefined ? formatPercent(cf.runningIrr) : "\u2014"}

@@ -217,19 +217,23 @@ function CaseDocument({ caseData, costs, values, model, ownerName }: PdfData) {
       <Page size="A4" style={styles.page}>
         <Text style={styles.sectionTitle}>Cash Flow Projection</Text>
         <View style={styles.headerRow}>
-          <Text style={[styles.cellSmall, styles.bold]}>Period</Text>
-          <Text style={[styles.cellSmall, styles.bold, styles.cellRight]}>Costs</Text>
-          <Text style={[styles.cellSmall, styles.bold, styles.cellRight]}>Benefits</Text>
-          <Text style={[styles.cellSmall, styles.bold, styles.cellRight]}>Net</Text>
-          <Text style={[styles.cellMed, styles.bold, styles.cellRight]}>Cumulative NPV</Text>
+          <Text style={[{ width: "12%" }, styles.bold]}>Period</Text>
+          <Text style={[{ width: "14%" }, styles.bold, styles.cellRight]}>Costs</Text>
+          <Text style={[{ width: "14%" }, styles.bold, styles.cellRight]}>Benefits</Text>
+          <Text style={[{ width: "14%" }, styles.bold, styles.cellRight]}>Net</Text>
+          <Text style={[{ width: "16%" }, styles.bold, styles.cellRight]}>Cum. NPV</Text>
+          <Text style={[{ width: "14%" }, styles.bold, styles.cellRight]}>Net NPV</Text>
+          <Text style={[{ width: "16%" }, styles.bold, styles.cellRight]}>Cum. Net NPV</Text>
         </View>
         {model.cashFlows.map((cf, i) => (
           <View key={i} style={styles.row}>
-            <Text style={styles.cellSmall}>{cf.periodLabel}</Text>
-            <Text style={[styles.cellSmall, styles.cellRight]}>{formatCurrency(cf.costs, cur)}</Text>
-            <Text style={[styles.cellSmall, styles.cellRight]}>{formatCurrency(cf.benefits, cur)}</Text>
-            <Text style={[styles.cellSmall, styles.cellRight]}>{formatCurrency(cf.netCashFlow, cur)}</Text>
-            <Text style={[styles.cellMed, styles.cellRight]}>{formatCurrency(cf.cumulativeNpv, cur)}</Text>
+            <Text style={{ width: "12%" }}>{cf.periodLabel}</Text>
+            <Text style={[{ width: "14%" }, styles.cellRight]}>{formatCurrency(cf.costs, cur)}</Text>
+            <Text style={[{ width: "14%" }, styles.cellRight]}>{formatCurrency(cf.benefits, cur)}</Text>
+            <Text style={[{ width: "14%" }, styles.cellRight]}>{formatCurrency(cf.netCashFlow, cur)}</Text>
+            <Text style={[{ width: "16%" }, styles.cellRight]}>{formatCurrency(cf.cumulativeNpv, cur)}</Text>
+            <Text style={[{ width: "14%" }, styles.cellRight]}>{formatCurrency(cf.netNpv, cur)}</Text>
+            <Text style={[{ width: "16%" }, styles.cellRight]}>{formatCurrency(cf.cumulativeNetNpv, cur)}</Text>
           </View>
         ))}
 

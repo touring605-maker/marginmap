@@ -74,7 +74,7 @@ export function generateExcel({ caseData, costs, values, model }: ExcelData): vo
   wsValues["!cols"] = [{ wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 30 }];
   XLSX.utils.book_append_sheet(wb, wsValues, "Value Model");
 
-  const cfHeaders = ["Period", "Costs", "Benefits", "Net Cash Flow", "Cumulative Net", "Cumulative NPV", "Running IRR"];
+  const cfHeaders = ["Period", "Costs", "Benefits", "Net Cash Flow", "Cumulative Net", "Cumulative NPV", "Net NPV", "Cumulative Net NPV", "Running IRR"];
   const cfRows = model.cashFlows.map(cf => [
     cf.periodLabel,
     cf.costs,
@@ -82,10 +82,12 @@ export function generateExcel({ caseData, costs, values, model }: ExcelData): vo
     cf.netCashFlow,
     cf.cumulativeNet,
     cf.cumulativeNpv,
+    cf.netNpv,
+    cf.cumulativeNetNpv,
     cf.runningIrr != null ? `${(cf.runningIrr * 100).toFixed(1)}%` : "",
   ]);
   const wsCashFlow = XLSX.utils.aoa_to_sheet([cfHeaders, ...cfRows]);
-  wsCashFlow["!cols"] = [{ wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 14 }];
+  wsCashFlow["!cols"] = [{ wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 15 }, { wch: 20 }, { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, wsCashFlow, "Cash Flow Projection");
 
   const summaryData = [
