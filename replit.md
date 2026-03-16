@@ -63,7 +63,7 @@ Express 5 API server with Replit Auth, org-scoped business case management, fina
 - Auth: `src/routes/auth.ts` — OIDC/PKCE login/callback/logout, mobile token exchange
 - Auth middleware: `src/middlewares/authMiddleware.ts` — session-based auth via cookies
 - Auth lib: `src/lib/auth.ts` — session management (in-memory store)
-- Financial engine: `src/lib/financialEngine.ts` — NPV (monthly discount), IRR (Newton-Raphson), ROI, breakeven, confidence-adjusted values
+- Financial engine: `src/lib/financialEngine.ts` — NPV (sum of discounted net cash flows over the full time horizon), IRR (Newton-Raphson), ROI, breakeven, confidence-adjusted values; CashFlowPeriod includes cumulativeCosts, cumulativeBenefits, and cumulativeNpv (running discounted net)
 - Industry templates: `src/lib/industryTemplates.ts` — Manufacturing, Retail, SaaS, Healthcare
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 

@@ -5,12 +5,13 @@ import { MetricCard } from "@/components/MetricCard";
 import {
   ResponsiveContainer,
   ComposedChart,
+  AreaChart,
+  Area,
   CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
   Legend,
-  Bar,
   Line,
   ReferenceLine,
 } from "recharts";
@@ -96,7 +97,7 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
         <MetricCard
           title="Net Present Value (NPV)"
           value={formatCurrency(data.npv)}
-          subtitle="Discounted benefits"
+          subtitle="Discounted net cash flows"
           icon={<DollarSign className="w-5 h-5" />}
           trend={{ value: data.npv > 0 ? "Positive" : "Negative", isPositive: data.npv > 0 }}
         />
@@ -176,61 +177,97 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
       )}
 
       <div className="bg-white dark:bg-slate-900 border border-border p-6 rounded-2xl shadow-sm">
-        <h3 className="text-lg font-bold mb-6">Cash Flow Waterfall</h3>
-        <div className="h-[400px] w-full">
+        <h3 className="text-lg font-bold mb-1">Breakeven Analysis</h3>
+        <p className="text-sm text-muted-foreground mb-6">Cumulative costs vs. benefits over the time horizon</p>
+        <div className="h-[420px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data.cashFlows} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+            <ComposedChart data={data.cashFlows} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+              <defs>
+                <linearGradient id="benefitGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ef4444" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#ef4444" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="periodLabel" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} dy={10} />
+              <XAxis
+                dataKey="periodLabel"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#64748b", fontSize: 11 }}
+                dy={10}
+                interval={data.cashFlows.length > 24 ? Math.ceil(data.cashFlows.length / 12) - 1 : data.cashFlows.length > 12 ? 2 : 0}
+              />
               <YAxis
                 tickFormatter={formatCurrencyCompact}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#64748b", fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 11 }}
                 dx={-10}
               />
               <Tooltip
                 formatter={(value: number, name: string) => [formatCurrency(value), name]}
-                contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                contentStyle={{
+                  borderRadius: "10px",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgb(0 0 0 / 0.12)",
+                  padding: "10px 14px",
+                  fontSize: "13px",
+                }}
+                labelStyle={{ fontWeight: 600, marginBottom: 4 }}
               />
-              <Legend wrapperStyle={{ paddingTop: "20px" }} />
+              <Legend
+                wrapperStyle={{ paddingTop: "20px" }}
+                iconType="plainline"
+              />
               {data.breakevenMonth && (
                 <ReferenceLine
                   x={`Month ${data.breakevenMonth}`}
                   stroke="#f59e0b"
-                  strokeDasharray="5 5"
+                  strokeDasharray="6 4"
                   strokeWidth={2}
-                  label={{ value: "Breakeven", position: "top", fill: "#f59e0b", fontSize: 11 }}
+                  label={{
+                    value: `Breakeven (Month ${data.breakevenMonth})`,
+                    position: "top",
+                    fill: "#d97706",
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
                 />
               )}
               <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1} />
-              <Bar dataKey="netCashFlow" name="Net Cash Flow" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
-              <Line
+              <Area
                 type="monotone"
-                dataKey="cumulativeNet"
-                name="Cumulative Net Benefit"
+                dataKey="cumulativeBenefits"
+                name="Cumulative Benefits"
                 stroke="#10b981"
-                strokeWidth={3}
-                dot={{ r: 3, strokeWidth: 2 }}
-                activeDot={{ r: 6, strokeWidth: 0 }}
+                strokeWidth={2.5}
+                fill="url(#benefitGradient)"
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0, fill: "#10b981" }}
+              />
+              <Area
+                type="monotone"
+                dataKey="cumulativeCosts"
+                name="Cumulative Costs"
+                stroke="#ef4444"
+                strokeWidth={2.5}
+                fill="url(#costGradient)"
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0, fill: "#ef4444" }}
               />
               <Line
                 type="monotone"
                 dataKey="cumulativeNpv"
-                name="Cumulative NPV (Benefits)"
+                name="Cumulative NPV"
                 stroke="#6366f1"
-                strokeWidth={2}
-                strokeDasharray="4 4"
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="cumulativeNetNpv"
-                name="Cumulative Net NPV"
-                stroke="#f59e0b"
                 strokeWidth={2}
                 strokeDasharray="6 3"
                 dot={false}
+                activeDot={{ r: 5, strokeWidth: 0, fill: "#6366f1" }}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -240,7 +277,7 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
       <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-border">
           <h3 className="text-lg font-bold">Monthly Breakdown</h3>
-          <p className="text-sm text-muted-foreground mt-1">Period-by-period discounted cash flows, cumulative NPV, net NPV, and running IRR</p>
+          <p className="text-sm text-muted-foreground mt-1">Period-by-period cash flows, cumulative NPV, and running IRR</p>
         </div>
         <div className="max-h-[400px] overflow-auto">
           <table className="w-full text-sm">
@@ -250,10 +287,8 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Costs</th>
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Benefits</th>
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Net Cash Flow</th>
-                <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Cumulative Net</th>
+                <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Cumulative Cash Flow</th>
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Cumulative NPV</th>
-                <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Net NPV</th>
-                <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Cumulative Net NPV</th>
                 <th className="text-right px-6 py-3 font-semibold text-muted-foreground">Running IRR</th>
               </tr>
             </thead>
@@ -269,14 +304,8 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
                   <td className={`px-6 py-3 text-right font-medium ${cf.cumulativeNet >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                     {formatCurrency(cf.cumulativeNet)}
                   </td>
-                  <td className="px-6 py-3 text-right text-indigo-600 dark:text-indigo-400 font-medium">
+                  <td className={`px-6 py-3 text-right text-indigo-600 dark:text-indigo-400 font-medium`}>
                     {formatCurrency(cf.cumulativeNpv)}
-                  </td>
-                  <td className={`px-6 py-3 text-right font-medium ${cf.netNpv >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                    {formatCurrency(cf.netNpv)}
-                  </td>
-                  <td className={`px-6 py-3 text-right font-medium ${cf.cumulativeNetNpv >= 0 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"}`}>
-                    {formatCurrency(cf.cumulativeNetNpv)}
                   </td>
                   <td className="px-6 py-3 text-right">
                     {cf.runningIrr !== null && cf.runningIrr !== undefined ? formatPercent(cf.runningIrr) : "\u2014"}

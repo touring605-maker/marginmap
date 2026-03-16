@@ -9,9 +9,9 @@ interface CashFlowPeriod {
   benefits: number;
   netCashFlow: number;
   cumulativeNet: number;
+  cumulativeCosts: number;
+  cumulativeBenefits: number;
   cumulativeNpv: number;
-  netNpv: number;
-  cumulativeNetNpv: number;
   runningIrr: number | null;
 }
 
@@ -80,11 +80,6 @@ async function getExchangeRate(from: string, to: string): Promise<number> {
   } catch {
     return 1;
   }
-}
-
-function calculateNPV(benefitFlows: number[], discountRate: number): number {
-  const monthlyRate = discountRate / 12;
-  return benefitFlows.reduce((npv, cf, i) => npv + cf / Math.pow(1 + monthlyRate, i + 1), 0);
 }
 
 function calculateIRR(cashFlows: number[], maxIter = 1000, tolerance = 1e-7): number | null {
@@ -256,14 +251,14 @@ async function computeFinancialModelInternal(
 
   let cumulative = 0;
   let breakevenMonth: number | null = null;
-  let cumulativeDiscountedBenefits = 0;
-  let cumulativeNetNpv = 0;
+  let cumulativeNpv = 0;
+  let runningCumulativeCosts = 0;
+  let runningCumulativeBenefits = 0;
 
   const cashFlows: CashFlowPeriod[] = [];
 
   for (let i = 0; i < months; i++) {
     const net = monthlyNetFlows[i];
-    const benefit = monthlyBenefits[i];
     cumulative += net;
 
     if (breakevenMonth === null && cumulative >= 0) {
@@ -271,9 +266,7 @@ async function computeFinancialModelInternal(
     }
 
     const discountFactor = Math.pow(1 + monthlyRate, i + 1);
-    cumulativeDiscountedBenefits += benefit / discountFactor;
-    const netNpv = net / discountFactor;
-    cumulativeNetNpv += netNpv;
+    cumulativeNpv += net / discountFactor;
 
     const netFlowsUpToNow = monthlyNetFlows.slice(0, i + 1);
     const runningIrr = i >= 1 ? calculateIRR(netFlowsUpToNow) : null;
@@ -292,6 +285,9 @@ async function computeFinancialModelInternal(
       monthlyBenefitPeriod += cascadedAnnualValue / 12;
     }
 
+    runningCumulativeCosts += monthlyCostPeriod;
+    runningCumulativeBenefits += monthlyBenefitPeriod;
+
     cashFlows.push({
       period: i + 1,
       periodLabel: `Month ${i + 1}`,
@@ -299,14 +295,14 @@ async function computeFinancialModelInternal(
       benefits: Math.round(monthlyBenefitPeriod * 100) / 100,
       netCashFlow: Math.round(net * 100) / 100,
       cumulativeNet: Math.round(cumulative * 100) / 100,
-      cumulativeNpv: Math.round(cumulativeDiscountedBenefits * 100) / 100,
-      netNpv: Math.round(netNpv * 100) / 100,
-      cumulativeNetNpv: Math.round(cumulativeNetNpv * 100) / 100,
+      cumulativeCosts: Math.round(runningCumulativeCosts * 100) / 100,
+      cumulativeBenefits: Math.round(runningCumulativeBenefits * 100) / 100,
+      cumulativeNpv: Math.round(cumulativeNpv * 100) / 100,
       runningIrr: runningIrr !== null ? Math.round(runningIrr * 10000) / 10000 : null,
     });
   }
 
-  const npv = calculateNPV(monthlyBenefits, discountRate);
+  const npv = cashFlows.length > 0 ? cashFlows[cashFlows.length - 1].cumulativeNpv : 0;
   const irr = calculateIRR(monthlyNetFlows);
   const roi = totalInvestment > 0 ? (totalExpectedValue - totalInvestment) / totalInvestment : 0;
 
