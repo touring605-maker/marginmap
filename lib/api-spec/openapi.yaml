@@ -1297,7 +1297,7 @@ components:
 
     CashFlowPeriod:
       type: object
-      required: [period, costs, benefits, netCashFlow, cumulativeNet, cumulativeNpv, runningIrr]
+      required: [period, periodLabel, costs, benefits, netCashFlow, cumulativeNet, cumulativeNpv, runningIrr]
       properties:
         period:
           type: integer

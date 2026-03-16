@@ -429,7 +429,7 @@ export interface CreateScenarioBody {
 
 export interface CashFlowPeriod {
   period: number;
-  periodLabel?: string;
+  periodLabel: string;
   costs: number;
   benefits: number;
   netCashFlow: number;

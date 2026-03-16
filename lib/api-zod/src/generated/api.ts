@@ -552,7 +552,7 @@ export const GetFinancialModelResponse = zod.object({
   cashFlows: zod.array(
     zod.object({
       period: zod.number(),
-      periodLabel: zod.string().optional(),
+      periodLabel: zod.string(),
       costs: zod.number(),
       benefits: zod.number(),
       netCashFlow: zod.number(),
@@ -664,7 +664,7 @@ export const GetPublicCaseResponse = zod.object({
     cashFlows: zod.array(
       zod.object({
         period: zod.number(),
-        periodLabel: zod.string().optional(),
+        periodLabel: zod.string(),
         costs: zod.number(),
         benefits: zod.number(),
         netCashFlow: zod.number(),
