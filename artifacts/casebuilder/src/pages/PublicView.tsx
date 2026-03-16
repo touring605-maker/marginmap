@@ -42,7 +42,7 @@ export default function PublicView() {
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-border p-8">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-display font-bold text-lg text-primary">CaseBuilder</span>
+            <span className="font-display font-bold text-lg text-primary">MarginMap</span>
             <span className="text-xs bg-slate-100 dark:bg-slate-800 text-muted-foreground px-2 py-0.5 rounded-full">Public Report</span>
           </div>
           <h1 className="text-3xl font-bold text-foreground mt-4">{bc.name}</h1>
@@ -152,7 +152,7 @@ export default function PublicView() {
         )}
 
         <div className="text-center text-sm text-muted-foreground py-6 border-t border-border">
-          Generated via CaseBuilder &bull; {new Date().toLocaleDateString()}
+          Generated via MarginMap &bull; {new Date().toLocaleDateString()}
         </div>
       </div>
     </div>

@@ -174,7 +174,7 @@ function CaseDocument({ caseData, costs, values, model, ownerName }: PdfData) {
         <Text style={styles.text}>Time Horizon: {caseData.timeHorizonMonths} months</Text>
         <Text style={styles.text}>Discount Rate: {((caseData.discountRate || 0) * 100).toFixed(1)}%</Text>
         <Text style={styles.text}>Industry: {caseData.industry || "General"}</Text>
-        <Text style={styles.footer}>CaseBuilder Report &bull; {caseData.name}</Text>
+        <Text style={styles.footer}>MarginMap Report &bull; {caseData.name}</Text>
       </Page>
 
       <Page size="A4" style={styles.page}>
@@ -211,7 +211,7 @@ function CaseDocument({ caseData, costs, values, model, ownerName }: PdfData) {
           </View>
         ))}
         {values.length === 0 && <Text style={styles.text}>No value drivers.</Text>}
-        <Text style={styles.footer}>CaseBuilder Report &bull; {caseData.name}</Text>
+        <Text style={styles.footer}>MarginMap Report &bull; {caseData.name}</Text>
       </Page>
 
       <Page size="A4" style={styles.page}>
@@ -254,7 +254,7 @@ function CaseDocument({ caseData, costs, values, model, ownerName }: PdfData) {
             <Text style={[styles.cellLarge, styles.cellRight, styles.bold]}>{val}</Text>
           </View>
         ))}
-        <Text style={styles.footer}>CaseBuilder Report &bull; {caseData.name}</Text>
+        <Text style={styles.footer}>MarginMap Report &bull; {caseData.name}</Text>
       </Page>
     </Document>
   );

@@ -2,7 +2,7 @@
 
 ## Overview
 
-CaseBuilder — a full-stack business case builder for finance teams. Multi-user with org scoping (users share cases within an org), multi-currency with live exchange rate conversion, multiple scenarios per case (optimistic/base/conservative), and a visual dependency canvas. pnpm workspace monorepo using TypeScript.
+MarginMap — a full-stack business case builder for finance teams. Multi-user with org scoping (users share cases within an org), multi-currency with live exchange rate conversion, multiple scenarios per case (optimistic/base/conservative), and a visual dependency canvas. pnpm workspace monorepo using TypeScript.
 
 ## Stack
 
