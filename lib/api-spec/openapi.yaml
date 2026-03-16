@@ -1,15 +1,35 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: CaseBuilder API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: Auth
+    description: Browser and mobile authentication endpoints.
+  - name: organizations
+    description: Organization management
+  - name: cases
+    description: Business case operations
+  - name: costs
+    description: Cost line item operations
+  - name: values
+    description: Value driver operations
+  - name: objectives
+    description: Financial objective operations
+  - name: scenarios
+    description: Scenario operations
+  - name: dependencies
+    description: Case dependency operations
+  - name: canvas
+    description: Canvas layout operations
+  - name: exchange
+    description: Exchange rate operations
+
 paths:
   /healthz:
     get:
@@ -24,7 +44,752 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Auth status resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the OIDC authorization endpoint.
+
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: iss
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+      responses:
+        '302':
+          description: Redirect on success or failure.
+
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear the session and begin OIDC logout
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '302':
+          description: Redirect to the OIDC provider logout URL.
+
+  /mobile-auth/token-exchange:
+    post:
+      tags: [Auth]
+      operationId: exchangeMobileAuthorizationCode
+      summary: Exchange a mobile OIDC code for a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileTokenExchangeRequest'
+      responses:
+        '200':
+          description: Session created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileTokenExchangeSuccess'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Token did not contain usable claims.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Token exchange failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /mobile-auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutMobileSession
+      summary: Delete a mobile session token
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+      responses:
+        '200':
+          description: Logout processed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutSuccess'
+
+  /organizations/current:
+    get:
+      tags: [organizations]
+      operationId: getCurrentOrganization
+      summary: Get current user's organization
+      responses:
+        "200":
+          description: Organization details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /organizations/members:
+    get:
+      tags: [organizations]
+      operationId: listOrganizationMembers
+      summary: List members in the current organization
+      responses:
+        "200":
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrganizationMember"
+
+  /cases:
+    get:
+      tags: [cases]
+      operationId: listBusinessCases
+      summary: List all business cases in the organization
+      responses:
+        "200":
+          description: List of business cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BusinessCase"
+    post:
+      tags: [cases]
+      operationId: createBusinessCase
+      summary: Create a new business case
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBusinessCaseBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessCase"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /cases/{id}:
+    get:
+      tags: [cases]
+      operationId: getBusinessCase
+      summary: Get a business case by ID
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Business case details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessCase"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    patch:
+      tags: [cases]
+      operationId: updateBusinessCase
+      summary: Update a business case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBusinessCaseBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessCase"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      tags: [cases]
+      operationId: deleteBusinessCase
+      summary: Delete a business case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "204":
+          description: Deleted
+
+  /cases/{id}/apply-template:
+    post:
+      tags: [cases]
+      operationId: applyIndustryTemplate
+      summary: Apply an industry template to a business case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyTemplateBody"
+      responses:
+        "200":
+          description: Template applied
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CostLineItem"
+
+  /cases/{id}/costs:
+    get:
+      tags: [costs]
+      operationId: listCostLineItems
+      summary: List cost line items for a business case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: scenarioId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of cost line items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CostLineItem"
+    post:
+      tags: [costs]
+      operationId: createCostLineItem
+      summary: Add a cost line item
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCostLineItemBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostLineItem"
+
+  /cases/{id}/costs/{costId}:
+    patch:
+      tags: [costs]
+      operationId: updateCostLineItem
+      summary: Update a cost line item
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: costId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCostLineItemBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostLineItem"
+    delete:
+      tags: [costs]
+      operationId: deleteCostLineItem
+      summary: Delete a cost line item
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: costId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /cases/{id}/values:
+    get:
+      tags: [values]
+      operationId: listValueDrivers
+      summary: List value drivers for a business case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: scenarioId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of value drivers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ValueDriver"
+    post:
+      tags: [values]
+      operationId: createValueDriver
+      summary: Add a value driver
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateValueDriverBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValueDriver"
+
+  /cases/{id}/values/{valueId}:
+    patch:
+      tags: [values]
+      operationId: updateValueDriver
+      summary: Update a value driver
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: valueId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateValueDriverBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValueDriver"
+    delete:
+      tags: [values]
+      operationId: deleteValueDriver
+      summary: Delete a value driver
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: valueId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /cases/{id}/objectives:
+    get:
+      tags: [objectives]
+      operationId: getFinancialObjective
+      summary: Get the financial objective for a case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Financial objective
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialObjectiveResponse"
+    put:
+      tags: [objectives]
+      operationId: upsertFinancialObjective
+      summary: Create or update the financial objective
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertFinancialObjectiveBody"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialObjective"
+
+  /cases/{id}/scenarios:
+    get:
+      tags: [scenarios]
+      operationId: listScenarios
+      summary: List scenarios for a business case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: List of scenarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Scenario"
+    post:
+      tags: [scenarios]
+      operationId: createScenario
+      summary: Create a new scenario
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScenarioBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scenario"
+
+  /cases/{id}/scenarios/{scenarioId}:
+    delete:
+      tags: [scenarios]
+      operationId: deleteScenario
+      summary: Delete a scenario
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: scenarioId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /cases/{id}/financial-model:
+    get:
+      tags: [cases]
+      operationId: getFinancialModel
+      summary: Get computed financial model for a case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+        - name: scenarioId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Financial model output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialModel"
+
+  /cases/{id}/share:
+    post:
+      tags: [cases]
+      operationId: enableSharing
+      summary: Enable or rotate the share token
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: Share token generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareTokenResponse"
+    delete:
+      tags: [cases]
+      operationId: disableSharing
+      summary: Disable sharing
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "204":
+          description: Sharing disabled
+
+  /cases/public/{shareToken}:
+    get:
+      tags: [cases]
+      operationId: getPublicCase
+      summary: Get a public business case by share token
+      parameters:
+        - name: shareToken
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public case data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicBusinessCase"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /dependencies:
+    get:
+      tags: [dependencies]
+      operationId: listCaseDependencies
+      summary: List all case dependencies in the org
+      responses:
+        "200":
+          description: List of dependencies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CaseDependency"
+    post:
+      tags: [dependencies]
+      operationId: createCaseDependency
+      summary: Create a case dependency
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCaseDependencyBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseDependency"
+
+  /dependencies/{id}:
+    patch:
+      tags: [dependencies]
+      operationId: updateCaseDependency
+      summary: Update a dependency
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCaseDependencyBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseDependency"
+    delete:
+      tags: [dependencies]
+      operationId: deleteCaseDependency
+      summary: Delete a dependency
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /canvas/positions:
+    get:
+      tags: [canvas]
+      operationId: getCanvasPositions
+      summary: Get all case positions on the canvas
+      responses:
+        "200":
+          description: Canvas state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasState"
+    put:
+      tags: [canvas]
+      operationId: saveCanvasPositions
+      summary: Save canvas positions for all nodes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveCanvasPositionsBody"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasState"
+
+  /exchange-rates:
+    get:
+      tags: [exchange]
+      operationId: getExchangeRates
+      summary: Get exchange rates for a base currency
+      parameters:
+        - name: base
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exchange rates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExchangeRatesResponse"
+
+  /industry-templates:
+    get:
+      tags: [cases]
+      operationId: listIndustryTemplates
+      summary: List available industry templates
+      responses:
+        "200":
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IndustryTemplate"
+
 components:
+  parameters:
+    CaseId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      description: Opaque session token
+      schema:
+        type: string
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      description: Browser session cookie.
+      schema:
+        type: string
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +799,598 @@ components:
       required:
         - status
 
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id:
+          type: string
+        email:
+          type: [string, 'null']
+          format: email
+        firstName:
+          type: [string, 'null']
+        lastName:
+          type: [string, 'null']
+        profileImageUrl:
+          type: [string, 'null']
+
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code:
+          type: string
+          minLength: 1
+        code_verifier:
+          type: string
+          minLength: 1
+        redirect_uri:
+          type: string
+          minLength: 1
+          format: uri
+        state:
+          type: string
+          minLength: 1
+        nonce:
+          type: string
+          minLength: 1
+
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          const: true
+
+    Organization:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    OrganizationMember:
+      type: object
+      required: [id, userId, role, user]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, member]
+        user:
+          $ref: "#/components/schemas/AuthUser"
+
+    BusinessCase:
+      type: object
+      required: [id, name, orgId, ownerId, currency, timeHorizonMonths, discountRate, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        orgId:
+          type: integer
+        ownerId:
+          type: string
+        industry:
+          type: [string, 'null']
+        currency:
+          type: string
+        timeHorizonMonths:
+          type: integer
+        discountRate:
+          type: number
+        status:
+          type: string
+          enum: [draft, in_review, approved]
+        shareToken:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateBusinessCaseBody:
+      type: object
+      required: [name, currency, timeHorizonMonths]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        industry:
+          type: string
+        currency:
+          type: string
+          minLength: 1
+        timeHorizonMonths:
+          type: integer
+          minimum: 1
+        discountRate:
+          type: number
+
+    UpdateBusinessCaseBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: [string, 'null']
+        industry:
+          type: [string, 'null']
+        currency:
+          type: string
+        timeHorizonMonths:
+          type: integer
+          minimum: 1
+        discountRate:
+          type: number
+        status:
+          type: string
+          enum: [draft, in_review, approved]
+
+    CostLineItem:
+      type: object
+      required: [id, businessCaseId, name, type, amount, frequency, createdAt]
+      properties:
+        id:
+          type: integer
+        businessCaseId:
+          type: integer
+        scenarioId:
+          type: [integer, 'null']
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [one_time, capex, opex, escalating, transition]
+        amount:
+          type: number
+        frequency:
+          type: string
+          enum: [once, monthly, annually]
+        escalationRate:
+          type: [number, 'null']
+        depreciationYears:
+          type: [integer, 'null']
+        currency:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateCostLineItemBody:
+      type: object
+      required: [name, type, amount, frequency]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        type:
+          type: string
+          enum: [one_time, capex, opex, escalating, transition]
+        amount:
+          type: number
+        frequency:
+          type: string
+          enum: [once, monthly, annually]
+        escalationRate:
+          type: number
+        depreciationYears:
+          type: integer
+        currency:
+          type: string
+        scenarioId:
+          type: integer
+
+    UpdateCostLineItemBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [one_time, capex, opex, escalating, transition]
+        amount:
+          type: number
+        frequency:
+          type: string
+          enum: [once, monthly, annually]
+        escalationRate:
+          type: [number, 'null']
+        depreciationYears:
+          type: [integer, 'null']
+        currency:
+          type: [string, 'null']
+
+    ValueDriver:
+      type: object
+      required: [id, businessCaseId, name, type, annualValue, confidenceLevel, monthsToRealize, createdAt]
+      properties:
+        id:
+          type: integer
+        businessCaseId:
+          type: integer
+        scenarioId:
+          type: [integer, 'null']
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [cost_reduction, revenue, margin, productivity, risk]
+        annualValue:
+          type: number
+        confidenceLevel:
+          type: string
+          enum: [high, medium, low]
+        monthsToRealize:
+          type: integer
+        currency:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateValueDriverBody:
+      type: object
+      required: [name, type, annualValue, confidenceLevel, monthsToRealize]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        type:
+          type: string
+          enum: [cost_reduction, revenue, margin, productivity, risk]
+        annualValue:
+          type: number
+        confidenceLevel:
+          type: string
+          enum: [high, medium, low]
+        monthsToRealize:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+        scenarioId:
+          type: integer
+
+    UpdateValueDriverBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [cost_reduction, revenue, margin, productivity, risk]
+        annualValue:
+          type: number
+        confidenceLevel:
+          type: string
+          enum: [high, medium, low]
+        monthsToRealize:
+          type: integer
+          minimum: 0
+        currency:
+          type: [string, 'null']
+
+    FinancialObjective:
+      type: object
+      required: [id, businessCaseId, targetValue, targetMonth]
+      properties:
+        id:
+          type: integer
+        businessCaseId:
+          type: integer
+        targetValue:
+          type: number
+        targetMonth:
+          type: integer
+
+    FinancialObjectiveResponse:
+      type: object
+      required: [objective]
+      properties:
+        objective:
+          oneOf:
+            - $ref: "#/components/schemas/FinancialObjective"
+            - type: 'null'
+
+    UpsertFinancialObjectiveBody:
+      type: object
+      required: [targetValue, targetMonth]
+      properties:
+        targetValue:
+          type: number
+        targetMonth:
+          type: integer
+          minimum: 1
+
+    Scenario:
+      type: object
+      required: [id, businessCaseId, name, type, createdAt]
+      properties:
+        id:
+          type: integer
+        businessCaseId:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [base, optimistic, conservative]
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateScenarioBody:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [base, optimistic, conservative]
+
+    FinancialModel:
+      type: object
+      required: [cashFlows, npv, irr, breakevenMonth, paybackPeriodMonths, roi, totalInvestment, totalExpectedValue, confidenceAdjustedValue]
+      properties:
+        cashFlows:
+          type: array
+          items:
+            $ref: "#/components/schemas/CashFlowPeriod"
+        npv:
+          type: number
+        irr:
+          type: [number, 'null']
+        breakevenMonth:
+          type: [integer, 'null']
+        paybackPeriodMonths:
+          type: [integer, 'null']
+        roi:
+          type: number
+        totalInvestment:
+          type: number
+        totalExpectedValue:
+          type: number
+        confidenceAdjustedValue:
+          type: number
+        objectiveProgress:
+          oneOf:
+            - $ref: "#/components/schemas/ObjectiveProgress"
+            - type: 'null'
+
+    CashFlowPeriod:
+      type: object
+      required: [period, costs, benefits, netCashFlow, cumulativeNet]
+      properties:
+        period:
+          type: integer
+        periodLabel:
+          type: string
+        costs:
+          type: number
+        benefits:
+          type: number
+        netCashFlow:
+          type: number
+        cumulativeNet:
+          type: number
+
+    ObjectiveProgress:
+      type: object
+      required: [targetValue, targetMonth, projectedValue, onTrack]
+      properties:
+        targetValue:
+          type: number
+        targetMonth:
+          type: integer
+        projectedValue:
+          type: number
+        onTrack:
+          type: boolean
+
+    ShareTokenResponse:
+      type: object
+      required: [shareToken]
+      properties:
+        shareToken:
+          type: string
+
+    PublicBusinessCase:
+      type: object
+      required: [case, costs, values, financialModel]
+      properties:
+        case:
+          $ref: "#/components/schemas/BusinessCase"
+        costs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostLineItem"
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValueDriver"
+        financialModel:
+          $ref: "#/components/schemas/FinancialModel"
+
+    CaseDependency:
+      type: object
+      required: [id, fromCaseId, toCaseId, dependencyType]
+      properties:
+        id:
+          type: integer
+        fromCaseId:
+          type: integer
+        toCaseId:
+          type: integer
+        dependencyType:
+          type: string
+          enum: [sequential, parallel, conditional]
+        conditionThreshold:
+          type: [number, 'null']
+        cascadeField:
+          type: [string, 'null']
+
+    CreateCaseDependencyBody:
+      type: object
+      required: [fromCaseId, toCaseId, dependencyType]
+      properties:
+        fromCaseId:
+          type: integer
+        toCaseId:
+          type: integer
+        dependencyType:
+          type: string
+          enum: [sequential, parallel, conditional]
+        conditionThreshold:
+          type: number
+        cascadeField:
+          type: string
+
+    UpdateCaseDependencyBody:
+      type: object
+      properties:
+        dependencyType:
+          type: string
+          enum: [sequential, parallel, conditional]
+        conditionThreshold:
+          type: [number, 'null']
+        cascadeField:
+          type: [string, 'null']
+
+    CanvasState:
+      type: object
+      required: [positions]
+      properties:
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasNodePosition"
+
+    CanvasNodePosition:
+      type: object
+      required: [caseId, x, y]
+      properties:
+        caseId:
+          type: integer
+        x:
+          type: number
+        y:
+          type: number
+
+    SaveCanvasPositionsBody:
+      type: object
+      required: [positions]
+      properties:
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasNodePosition"
+
+    ExchangeRatesResponse:
+      type: object
+      required: [base, rates, fetchedAt]
+      properties:
+        base:
+          type: string
+        rates:
+          type: object
+          additionalProperties:
+            type: number
+        fetchedAt:
+          type: string
+          format: date-time
+
+    IndustryTemplate:
+      type: object
+      required: [id, name, industry, costItems]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        industry:
+          type: string
+        description:
+          type: string
+        costItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateCostItem"
+
+    TemplateCostItem:
+      type: object
+      required: [name, type, amount, frequency]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [one_time, capex, opex, escalating, transition]
+        amount:
+          type: number
+        frequency:
+          type: string
+          enum: [once, monthly, annually]
+        escalationRate:
+          type: number
+        depreciationYears:
+          type: integer

@@ -1,0 +1,58 @@
+export const industryTemplates = [
+  {
+    id: "manufacturing",
+    name: "Manufacturing",
+    industry: "manufacturing",
+    description: "Equipment, tooling, line changeover, maintenance, labor, and waste costs",
+    costItems: [
+      { name: "Equipment Purchase", type: "capex", amount: 500000, frequency: "once", depreciationYears: 10, description: "Primary manufacturing equipment" },
+      { name: "Tooling & Dies", type: "capex", amount: 75000, frequency: "once", depreciationYears: 5, description: "Specialized tooling and dies" },
+      { name: "Line Changeover", type: "transition", amount: 50000, frequency: "once", description: "Production line reconfiguration" },
+      { name: "Maintenance Contracts", type: "opex", amount: 5000, frequency: "monthly", description: "Equipment maintenance agreements" },
+      { name: "Direct Labor", type: "opex", amount: 15000, frequency: "monthly", description: "Production floor labor costs" },
+      { name: "Scrap & Waste", type: "escalating", amount: 2000, frequency: "monthly", escalationRate: 3, description: "Material waste and scrap costs" },
+    ],
+  },
+  {
+    id: "retail",
+    name: "Retail",
+    industry: "retail",
+    description: "Inventory, shrinkage, store labor, POS systems, and logistics",
+    costItems: [
+      { name: "Initial Inventory", type: "one_time", amount: 200000, frequency: "once", description: "Initial stock purchase" },
+      { name: "POS System", type: "capex", amount: 25000, frequency: "once", depreciationYears: 5, description: "Point of sale hardware and software" },
+      { name: "Store Labor", type: "opex", amount: 12000, frequency: "monthly", description: "Retail staff wages" },
+      { name: "Inventory Shrinkage", type: "opex", amount: 1500, frequency: "monthly", description: "Theft, damage, and administrative errors" },
+      { name: "Logistics & Shipping", type: "escalating", amount: 8000, frequency: "monthly", escalationRate: 4, description: "Distribution and delivery costs" },
+      { name: "Store Setup", type: "transition", amount: 75000, frequency: "once", description: "Store buildout and fixtures" },
+    ],
+  },
+  {
+    id: "saas",
+    name: "SaaS / Software",
+    industry: "saas",
+    description: "Licensing, infrastructure, implementation, training, and support",
+    costItems: [
+      { name: "Software Licensing", type: "opex", amount: 5000, frequency: "monthly", description: "SaaS subscription fees" },
+      { name: "Cloud Infrastructure", type: "opex", amount: 3000, frequency: "monthly", description: "AWS/Azure/GCP hosting costs" },
+      { name: "Implementation", type: "one_time", amount: 100000, frequency: "once", description: "Initial setup and configuration" },
+      { name: "Training", type: "transition", amount: 25000, frequency: "once", description: "User training and onboarding" },
+      { name: "Support & Maintenance", type: "escalating", amount: 2000, frequency: "monthly", escalationRate: 5, description: "Ongoing technical support" },
+      { name: "Data Migration", type: "transition", amount: 30000, frequency: "once", description: "Migration from legacy systems" },
+    ],
+  },
+  {
+    id: "healthcare",
+    name: "Healthcare",
+    industry: "healthcare",
+    description: "Compliance, EHR systems, staffing, and regulatory filings",
+    costItems: [
+      { name: "EHR System", type: "capex", amount: 300000, frequency: "once", depreciationYears: 7, description: "Electronic Health Records system" },
+      { name: "Compliance & Audit", type: "opex", amount: 8000, frequency: "monthly", description: "HIPAA compliance and auditing" },
+      { name: "Clinical Staffing", type: "opex", amount: 25000, frequency: "monthly", description: "Healthcare professional wages" },
+      { name: "Regulatory Filings", type: "opex", amount: 5000, frequency: "annually", description: "Annual regulatory submissions" },
+      { name: "Staff Training", type: "transition", amount: 40000, frequency: "once", description: "Clinical staff training programs" },
+      { name: "Insurance Premiums", type: "escalating", amount: 10000, frequency: "monthly", escalationRate: 6, description: "Malpractice and liability insurance" },
+    ],
+  },
+];

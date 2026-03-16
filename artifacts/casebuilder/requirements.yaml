@@ -1,0 +1,22 @@
+packages:
+  "framer-motion": "For page transitions and smooth micro-interactions"
+  "recharts": "For rendering the financial waterfall and cash flow charts"
+  "date-fns": "For human-readable date formatting in the dashboard"
+  "react-hook-form": "For robust form state management"
+  "@hookform/resolvers": "For Zod validation integration with forms"
+  "zod": "For client-side form validation schemas"
+
+images:
+  - path: "artifacts/casebuilder/public/images/login-bg.png"
+    description: "Abstract premium finance technology background, deep slate blue and emerald green gradients, subtle glowing geometric lines, depth and luxury feel"
+    aspect_ratio: "16:9"
+  - path: "artifacts/casebuilder/public/images/logo.png"
+    description: "Minimal modern geometric logo mark for a finance app, stylized building blocks or growth chart, deep blue and emerald green, transparent background"
+    aspect_ratio: "1:1"
+  - path: "artifacts/casebuilder/public/images/canvas-placeholder.png"
+    description: "Abstract 3D nodes connected by glowing lines, representing a visual dependency graph, premium dark mode styling"
+    aspect_ratio: "16:9"
+
+notes:
+  - The API endpoints require Replit Auth session cookies
+  - Forms use z.coerce for number inputs to match generated API schemas
