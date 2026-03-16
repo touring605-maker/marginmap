@@ -272,22 +272,25 @@ async function computeFinancialModelInternal(
     const netFlowsUpToNow = monthlyNetFlows.slice(0, i + 1);
     const runningIrr = i >= 1 ? calculateIRR(netFlowsUpToNow) : null;
 
-    let monthlyCost = 0;
-    let monthlyBenefit = 0;
+    let monthlyCostPeriod = 0;
+    let monthlyBenefitPeriod = 0;
     for (const cost of costs) {
       const fxRate = fxRates[cost.currency ?? caseCurrency] ?? 1;
-      monthlyCost += computeMonthlyCost(cost, i, fxRate);
+      monthlyCostPeriod += computeMonthlyCost(cost, i, fxRate);
     }
     for (const value of values) {
       const fxRate = fxRates[value.currency ?? caseCurrency] ?? 1;
-      monthlyBenefit += computeMonthlyBenefit(value, i, fxRate);
+      monthlyBenefitPeriod += computeMonthlyBenefit(value, i, fxRate);
+    }
+    if (cascadedAnnualValue > 0) {
+      monthlyBenefitPeriod += cascadedAnnualValue / 12;
     }
 
     cashFlows.push({
       period: i + 1,
       periodLabel: `Month ${i + 1}`,
-      costs: Math.round(monthlyCost * 100) / 100,
-      benefits: Math.round(monthlyBenefit * 100) / 100,
+      costs: Math.round(monthlyCostPeriod * 100) / 100,
+      benefits: Math.round(monthlyBenefitPeriod * 100) / 100,
       netCashFlow: Math.round(net * 100) / 100,
       cumulativeNet: Math.round(cumulative * 100) / 100,
       cumulativeNpv: Math.round(cumulativeDiscountedBenefits * 100) / 100,

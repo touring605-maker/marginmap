@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useValues, useCreateValue, useUpdateValue, useDeleteValue } from "@/hooks/use-values";
-import { Plus, Trash2, Loader2, Pencil } from "lucide-react";
+import { useListCaseDependencies, useListBusinessCases } from "@workspace/api-client-react";
+import { Plus, Trash2, Loader2, Pencil, Link2 } from "lucide-react";
 
 const VALUE_TYPES = [
   { value: "cost_reduction", label: "Cost Reduction" },
@@ -130,8 +131,20 @@ function ValueForm({
   );
 }
 
+const CASCADE_LABELS: Record<string, string> = {
+  npv: "Net Present Value",
+  totalAnnualSavings: "Total Annual Savings",
+  totalExpectedValue: "Total Expected Value",
+  confidenceAdjustedValue: "Confidence-Adjusted Value",
+};
+
 export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?: number }) {
   const { data: values, isLoading } = useValues(caseId, scenarioId);
+  const { data: allDeps } = useListCaseDependencies();
+  const { data: allCases } = useListBusinessCases();
+
+  const incomingCascades = (allDeps || []).filter(d => d.toCaseId === caseId && d.cascadeField);
+  const caseNameMap = new Map((allCases || []).map(c => [c.id, c.name]));
   const createMutation = useCreateValue();
   const updateMutation = useUpdateValue();
   const deleteMutation = useDeleteValue();
@@ -321,6 +334,35 @@ export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?:
           </tbody>
         </table>
       </div>
+
+      {incomingCascades.length > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300">Cascaded Value Inputs</h3>
+          </div>
+          <p className="text-xs text-blue-700 dark:text-blue-400">
+            Financial outputs from upstream cases are automatically included in this case&rsquo;s model calculations.
+          </p>
+          <div className="space-y-2">
+            {incomingCascades.map((dep) => (
+              <div key={dep.id} className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-500/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-foreground">{caseNameMap.get(dep.fromCaseId) || `Case #${dep.fromCaseId}`}</span>
+                  <span className="text-[10px] text-muted-foreground">&rarr;</span>
+                  <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                    {CASCADE_LABELS[dep.cascadeField!] || dep.cascadeField}
+                  </span>
+                </div>
+                <span className="text-[10px] bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full font-medium capitalize">
+                  {dep.dependencyType}
+                  {dep.dependencyType === "conditional" && dep.conditionThreshold != null && ` ≥ ${dep.conditionThreshold}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

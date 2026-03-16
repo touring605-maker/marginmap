@@ -24,11 +24,12 @@ export interface CaseNodeData extends Record<string, unknown> {
   caseData: BusinessCase;
   npv?: number | null;
   breakevenMonth?: number | null;
+  scenarioCount?: number;
 }
 
 function CaseNodeComponent({ data }: NodeProps) {
   const [, setLocation] = useLocation();
-  const { caseData, npv, breakevenMonth } = data as CaseNodeData;
+  const { caseData, npv, breakevenMonth, scenarioCount } = data as CaseNodeData;
   const currency = caseData.currency || "USD";
   const statusColor = statusColors[caseData.status] || "bg-gray-400";
 
@@ -44,7 +45,14 @@ function CaseNodeComponent({ data }: NodeProps) {
           <span className={`w-2.5 h-2.5 rounded-full ${statusColor} flex-shrink-0`} />
           <h3 className="text-sm font-semibold text-foreground truncate">{caseData.name}</h3>
         </div>
-        <span className="text-xs text-muted-foreground capitalize">{caseData.status.replace("_", " ")}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground capitalize">{caseData.status.replace("_", " ")}</span>
+          {scenarioCount != null && scenarioCount > 0 && (
+            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+              {scenarioCount} scenario{scenarioCount > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="px-4 py-2.5 grid grid-cols-2 gap-2">

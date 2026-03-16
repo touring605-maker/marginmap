@@ -25,6 +25,7 @@ import {
   getGetCanvasPositionsQueryKey,
   getListCaseDependenciesQueryKey,
   getGetFinancialModelQueryOptions,
+  getListScenariosQueryOptions,
   type BusinessCase,
   type FinancialModel,
 } from "@workspace/api-client-react";
@@ -71,6 +72,14 @@ export default function Canvas() {
     })),
   });
 
+  const scenarioQueries = useQueries({
+    queries: (cases || []).map((c) => ({
+      ...getListScenariosQueryOptions(c.id),
+      retry: false,
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
   const modelMap = useMemo(() => {
     const m = new Map<number, FinancialModel>();
     if (cases) {
@@ -81,6 +90,17 @@ export default function Canvas() {
     }
     return m;
   }, [cases, modelQueries]);
+
+  const scenarioCountMap = useMemo(() => {
+    const m = new Map<number, number>();
+    if (cases) {
+      cases.forEach((c, i) => {
+        const q = scenarioQueries[i];
+        if (q?.data && Array.isArray(q.data)) m.set(c.id, q.data.length);
+      });
+    }
+    return m;
+  }, [cases, scenarioQueries]);
 
   const handleDeleteDep = useCallback(
     (depId: number) => {
@@ -113,6 +133,7 @@ export default function Canvas() {
           caseData: c,
           npv: model?.npv ?? null,
           breakevenMonth: model?.breakevenMonth ?? null,
+          scenarioCount: scenarioCountMap.get(c.id) ?? 0,
         },
       };
     });
@@ -138,26 +159,27 @@ export default function Canvas() {
       setNodes(newNodes);
     }
     setEdges(newEdges);
-  }, [cases, positionsData, deps, casesLoading, posLoading, depsLoading, setNodes, setEdges, handleDeleteDep, modelMap]);
+  }, [cases, positionsData, deps, casesLoading, posLoading, depsLoading, setNodes, setEdges, handleDeleteDep, modelMap, scenarioCountMap]);
 
   useEffect(() => {
-    if (!initialized.current || modelMap.size === 0) return;
+    if (!initialized.current) return;
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
         const caseId = parseInt(node.id.replace("case-", ""), 10);
         const model = modelMap.get(caseId);
-        if (!model) return node;
+        const sc = scenarioCountMap.get(caseId);
         return {
           ...node,
           data: {
             ...node.data,
-            npv: model.npv,
-            breakevenMonth: model.breakevenMonth,
+            npv: model?.npv ?? null,
+            breakevenMonth: model?.breakevenMonth ?? null,
+            scenarioCount: sc ?? 0,
           },
         };
       })
     );
-  }, [modelMap, setNodes]);
+  }, [modelMap, scenarioCountMap, setNodes]);
 
   useEffect(() => {
     if (!deps || !initialized.current) return;
