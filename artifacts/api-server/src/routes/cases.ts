@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import crypto from "crypto";
 import {
   db,
@@ -81,7 +81,26 @@ router.get("/cases", async (req: Request, res: Response): Promise<void> => {
   }
   const org = await getOrCreateOrg(req.user.id);
   const cases = await db.select().from(businessCasesTable).where(eq(businessCasesTable.orgId, org.id));
-  res.json(ListBusinessCasesResponse.parse(cases));
+
+  const casesWithSummary = await Promise.all(
+    cases.map(async (bc) => {
+      const [costAgg] = await db
+        .select({ total: sql<number>`coalesce(sum(${costLineItemsTable.amount}), 0)` })
+        .from(costLineItemsTable)
+        .where(eq(costLineItemsTable.businessCaseId, bc.id));
+      const [valueAgg] = await db
+        .select({ total: sql<number>`coalesce(sum(${valueDriversTable.annualValue}), 0)` })
+        .from(valueDriversTable)
+        .where(eq(valueDriversTable.businessCaseId, bc.id));
+      return {
+        ...bc,
+        totalInvestment: Number(costAgg?.total ?? 0),
+        totalExpectedValue: Number(valueAgg?.total ?? 0),
+      };
+    })
+  );
+
+  res.json(ListBusinessCasesResponse.parse(casesWithSummary));
 });
 
 router.post("/cases", async (req: Request, res: Response): Promise<void> => {

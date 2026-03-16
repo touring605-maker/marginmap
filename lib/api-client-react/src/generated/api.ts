@@ -21,6 +21,7 @@ import type {
   AuthUserEnvelope,
   BeginBrowserLoginParams,
   BusinessCase,
+  BusinessCaseSummary,
   CanvasState,
   CaseDependency,
   CostLineItem,
@@ -920,8 +921,8 @@ export const getListBusinessCasesUrl = () => {
 
 export const listBusinessCases = async (
   options?: RequestInit,
-): Promise<BusinessCase[]> => {
-  return customFetch<BusinessCase[]>(getListBusinessCasesUrl(), {
+): Promise<BusinessCaseSummary[]> => {
+  return customFetch<BusinessCaseSummary[]>(getListBusinessCasesUrl(), {
     ...options,
     method: "GET",
   });

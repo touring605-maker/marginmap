@@ -246,7 +246,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/BusinessCase"
+                  $ref: "#/components/schemas/BusinessCaseSummary"
     post:
       tags: [cases]
       operationId: createBusinessCase
@@ -934,6 +934,44 @@ components:
           enum: [owner, admin, member]
         user:
           $ref: "#/components/schemas/AuthUser"
+
+    BusinessCaseSummary:
+      type: object
+      required: [id, name, orgId, ownerId, currency, timeHorizonMonths, discountRate, status, createdAt, updatedAt, totalInvestment, totalExpectedValue]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        orgId:
+          type: integer
+        ownerId:
+          type: string
+        industry:
+          type: [string, 'null']
+        currency:
+          type: string
+        timeHorizonMonths:
+          type: integer
+        discountRate:
+          type: number
+        status:
+          type: string
+          enum: [draft, in_review, approved]
+        shareToken:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        totalInvestment:
+          type: number
+        totalExpectedValue:
+          type: number
 
     BusinessCase:
       type: object

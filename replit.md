@@ -73,8 +73,10 @@ React + Vite frontend with Tailwind CSS. Uses `@workspace/replit-auth-web` for a
 
 - Vite proxy: `/api` → `http://localhost:8080`
 - Auth: uses `useAuth()` from `@workspace/replit-auth-web` (never the generated API client for auth)
-- Pages: Login, Dashboard, NewCase, CaseEditor (with CostsTab, ValuesTab, ModelTab tabs), Canvas, PublicView
-- Hooks: `use-cases.ts`, `use-costs.ts`, `use-values.ts`
+- Pages: Login, Dashboard (with case cards showing investment/value totals), NewCase (3-step wizard: details+industry → template → review), CaseEditor (tabs: Overview, Costs, Values, Financial Model, Export), Canvas, PublicView
+- Case editor tabs: OverviewTab (editable metadata + financial objectives), CostsTab (5 cost types with inline editing), ValuesTab (5 value types with inline editing), ModelTab (NPV/IRR/ROI charts), Export (share + PDF/Excel placeholders)
+- Scenario management: create/switch/delete scenarios; scenario filtering on costs and values
+- Hooks: `use-cases.ts`, `use-costs.ts`, `use-values.ts`, `use-scenarios.ts` (scenarios, templates, financial objectives)
 
 ### `lib/db` (`@workspace/db`)
 

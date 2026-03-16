@@ -141,6 +141,8 @@ export const ListBusinessCasesResponseItem = zod.object({
   shareToken: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+  totalInvestment: zod.number(),
+  totalExpectedValue: zod.number(),
 });
 export const ListBusinessCasesResponse = zod.array(
   ListBusinessCasesResponseItem,

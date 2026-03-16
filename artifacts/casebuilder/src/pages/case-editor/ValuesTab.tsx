@@ -1,52 +1,220 @@
 import { useState } from "react";
-import { useValues, useCreateValue, useDeleteValue } from "@/hooks/use-values";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { useValues, useCreateValue, useUpdateValue, useDeleteValue } from "@/hooks/use-values";
+import { Plus, Trash2, Loader2, Pencil } from "lucide-react";
 
-export function ValuesTab({ caseId }: { caseId: number }) {
-  const { data: values, isLoading } = useValues(caseId);
-  const deleteMutation = useDeleteValue();
+const VALUE_TYPES = [
+  { value: "cost_reduction", label: "Cost Reduction" },
+  { value: "revenue", label: "Revenue" },
+  { value: "margin", label: "Margin" },
+  { value: "productivity", label: "Productivity" },
+  { value: "risk", label: "Risk Mitigation" },
+] as const;
+
+const CONFIDENCE_LEVELS = [
+  { value: "high", label: "High (90%)", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" },
+  { value: "medium", label: "Medium (70%)", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" },
+  { value: "low", label: "Low (50%)", color: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" },
+] as const;
+
+type ValueType = "cost_reduction" | "revenue" | "margin" | "productivity" | "risk";
+type Confidence = "high" | "medium" | "low";
+
+interface ValueFormData {
+  name: string;
+  type: ValueType;
+  annualValue: string;
+  confidenceLevel: Confidence;
+  monthsToRealize: string;
+  description: string;
+}
+
+const emptyForm: ValueFormData = {
+  name: "",
+  type: "cost_reduction",
+  annualValue: "",
+  confidenceLevel: "medium",
+  monthsToRealize: "0",
+  description: "",
+};
+
+function ValueForm({
+  data,
+  onChange,
+  onSubmit,
+  onCancel,
+  isPending,
+  submitLabel,
+}: {
+  data: ValueFormData;
+  onChange: (d: ValueFormData) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+  submitLabel: string;
+}) {
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
+      className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-border space-y-4"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2">
+          <label className="block text-xs font-semibold mb-1">Driver Name</label>
+          <input
+            required type="text" value={data.name}
+            onChange={(e) => onChange({ ...data, name: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1">Type</label>
+          <select
+            value={data.type}
+            onChange={(e) => onChange({ ...data, type: e.target.value as ValueType })}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+          >
+            {VALUE_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1">Annual Value</label>
+          <input
+            required type="number" min="0" step="0.01" value={data.annualValue}
+            onChange={(e) => onChange({ ...data, annualValue: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1">Confidence Level</label>
+          <select
+            value={data.confidenceLevel}
+            onChange={(e) => onChange({ ...data, confidenceLevel: e.target.value as Confidence })}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+          >
+            {CONFIDENCE_LEVELS.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1">Months to Realize</label>
+          <input
+            required type="number" min="0" value={data.monthsToRealize}
+            onChange={(e) => onChange({ ...data, monthsToRealize: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1">Description (Optional)</label>
+        <input
+          type="text" value={data.description}
+          onChange={(e) => onChange({ ...data, description: e.target.value })}
+          placeholder="Brief description..."
+          className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-2">
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg">
+          Cancel
+        </button>
+        <button type="submit" disabled={isPending} className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 flex items-center gap-2">
+          {isPending && <Loader2 className="w-4 h-4 animate-spin" />} {submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?: number }) {
+  const { data: values, isLoading } = useValues(caseId, scenarioId);
   const createMutation = useCreateValue();
-  
-  const [isAdding, setIsAdding] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    type: "cost_reduction" as any,
-    annualValue: "",
-    confidenceLevel: "medium" as any,
-    monthsToRealize: "0",
-  });
+  const updateMutation = useUpdateValue();
+  const deleteMutation = useDeleteValue();
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate({
-      id: caseId,
-      data: {
-        name: formData.name,
-        type: formData.type,
-        annualValue: parseFloat(formData.annualValue),
-        confidenceLevel: formData.confidenceLevel,
-        monthsToRealize: parseInt(formData.monthsToRealize, 10),
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<ValueFormData>({ ...emptyForm });
+  const [editData, setEditData] = useState<ValueFormData>({ ...emptyForm });
+
+  const handleCreate = () => {
+    createMutation.mutate(
+      {
+        id: caseId,
+        data: {
+          name: formData.name,
+          type: formData.type,
+          annualValue: parseFloat(formData.annualValue),
+          confidenceLevel: formData.confidenceLevel,
+          monthsToRealize: parseInt(formData.monthsToRealize, 10),
+          ...(formData.description ? { description: formData.description } : {}),
+          ...(scenarioId ? { scenarioId } : {}),
+        },
+      },
+      {
+        onSuccess: () => {
+          setIsAdding(false);
+          setFormData({ ...emptyForm });
+        },
       }
-    }, {
-      onSuccess: () => {
-        setIsAdding(false);
-        setFormData({ name: "", type: "cost_reduction", annualValue: "", confidenceLevel: "medium", monthsToRealize: "0" });
-      }
+    );
+  };
+
+  const startEdit = (val: { id: number; name: string; type: string; annualValue: number; confidenceLevel: string; monthsToRealize: number; description?: string | null }) => {
+    setEditingId(val.id);
+    setEditData({
+      name: val.name,
+      type: val.type as ValueType,
+      annualValue: String(val.annualValue),
+      confidenceLevel: val.confidenceLevel as Confidence,
+      monthsToRealize: String(val.monthsToRealize),
+      description: val.description || "",
     });
+  };
+
+  const handleUpdate = () => {
+    if (editingId === null) return;
+    updateMutation.mutate(
+      {
+        id: caseId,
+        valueId: editingId,
+        data: {
+          name: editData.name,
+          type: editData.type,
+          annualValue: parseFloat(editData.annualValue),
+          confidenceLevel: editData.confidenceLevel,
+          monthsToRealize: parseInt(editData.monthsToRealize, 10),
+          ...(editData.description ? { description: editData.description } : {}),
+        },
+      },
+      { onSuccess: () => setEditingId(null) }
+    );
   };
 
   if (isLoading) return <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></div>;
 
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+
+  const totalValue = values?.reduce((sum, v) => sum + v.annualValue, 0) || 0;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-display font-bold">Value Drivers</h2>
-          <p className="text-muted-foreground text-sm">Define expected savings, revenue, and productivity gains.</p>
+          <p className="text-muted-foreground text-sm">
+            Define expected savings, revenue, and productivity gains.
+            {values && values.length > 0 && (
+              <span className="ml-2 font-semibold text-foreground">{values.length} drivers, total: {formatCurrency(totalValue)}/yr</span>
+            )}
+          </p>
         </div>
-        <button 
+        <button
           onClick={() => setIsAdding(true)}
           className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
         >
@@ -55,87 +223,100 @@ export function ValuesTab({ caseId }: { caseId: number }) {
       </div>
 
       {isAdding && (
-        <form onSubmit={handleCreate} className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-border space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold mb-1">Driver Name</label>
-              <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1">Type</label>
-              <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})} className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none">
-                <option value="cost_reduction">Cost Reduction</option>
-                <option value="revenue">Revenue</option>
-                <option value="productivity">Productivity</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1">Annual Value</label>
-              <input required type="number" min="0" step="0.01" value={formData.annualValue} onChange={e => setFormData({...formData, annualValue: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1">Confidence</label>
-              <select value={formData.confidenceLevel} onChange={e => setFormData({...formData, confidenceLevel: e.target.value as any})} className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none">
-                <option value="high">High (90%)</option>
-                <option value="medium">Medium (70%)</option>
-                <option value="low">Low (50%)</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg">Cancel</button>
-            <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 flex items-center gap-2">
-              {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save Driver
-            </button>
-          </div>
-        </form>
+        <ValueForm
+          data={formData}
+          onChange={setFormData}
+          onSubmit={handleCreate}
+          onCancel={() => { setIsAdding(false); setFormData({ ...emptyForm }); }}
+          isPending={createMutation.isPending}
+          submitLabel="Save Driver"
+        />
       )}
 
       <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b border-border">
             <tr>
-              <th className="px-6 py-4 font-semibold">Name</th>
-              <th className="px-6 py-4 font-semibold">Type</th>
-              <th className="px-6 py-4 font-semibold">Annual Value</th>
-              <th className="px-6 py-4 font-semibold">Confidence</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
+              <th className="px-4 py-3 font-semibold">Name</th>
+              <th className="px-4 py-3 font-semibold">Type</th>
+              <th className="px-4 py-3 font-semibold">Annual Value</th>
+              <th className="px-4 py-3 font-semibold">Confidence</th>
+              <th className="px-4 py-3 font-semibold">Realization</th>
+              <th className="px-4 py-3 font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {values?.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                  No value drivers defined yet.
+                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  No value drivers defined yet. Click "Add Value" to get started.
                 </td>
               </tr>
             ) : (
-              values?.map((val) => (
-                <tr key={val.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                  <td className="px-6 py-4 font-medium text-foreground">{val.name}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-medium uppercase tracking-wider">{val.type.replace('_', ' ')}</span>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-emerald-600 dark:text-emerald-400 font-medium">+{formatCurrency(val.annualValue)}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-md text-xs font-medium uppercase tracking-wider ${
-                      val.confidenceLevel === 'high' ? 'bg-emerald-100 text-emerald-700' :
-                      val.confidenceLevel === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
-                    }`}>
-                      {val.confidenceLevel}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => deleteMutation.mutate({ id: caseId, valueId: val.id })}
-                      disabled={deleteMutation.isPending}
-                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))
+              values?.map((val) =>
+                editingId === val.id ? (
+                  <tr key={val.id} className="bg-primary/5">
+                    <td colSpan={6} className="p-4">
+                      <ValueForm
+                        data={editData}
+                        onChange={setEditData}
+                        onSubmit={handleUpdate}
+                        onCancel={() => setEditingId(null)}
+                        isPending={updateMutation.isPending}
+                        submitLabel="Update"
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={val.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-foreground">{val.name}</p>
+                      {val.description && <p className="text-xs text-muted-foreground mt-0.5">{val.description}</p>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium uppercase tracking-wider ${
+                        val.type === "revenue" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+                        val.type === "cost_reduction" ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400" :
+                        val.type === "productivity" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400" :
+                        val.type === "risk" ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" :
+                        "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                      }`}>
+                        {val.type.replace("_", " ")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-emerald-600 dark:text-emerald-400 font-medium">
+                      +{formatCurrency(val.annualValue)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium uppercase tracking-wider ${
+                        CONFIDENCE_LEVELS.find((c) => c.value === val.confidenceLevel)?.color || ""
+                      }`}>
+                        {val.confidenceLevel}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {val.monthsToRealize === 0 ? "Immediate" : `${val.monthsToRealize} mo`}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => startEdit(val)}
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteMutation.mutate({ id: caseId, valueId: val.id })}
+                          disabled={deleteMutation.isPending}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              )
             )}
           </tbody>
         </table>

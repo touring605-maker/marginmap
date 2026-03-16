@@ -13,6 +13,8 @@ export * from "./authUserEnvelope";
 export * from "./beginBrowserLoginParams";
 export * from "./businessCase";
 export * from "./businessCaseStatus";
+export * from "./businessCaseSummary";
+export * from "./businessCaseSummaryStatus";
 export * from "./canvasNodePosition";
 export * from "./canvasState";
 export * from "./caseDependency";

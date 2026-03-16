@@ -73,6 +73,36 @@ export interface OrganizationMember {
   user: AuthUser;
 }
 
+export type BusinessCaseSummaryStatus =
+  (typeof BusinessCaseSummaryStatus)[keyof typeof BusinessCaseSummaryStatus];
+
+export const BusinessCaseSummaryStatus = {
+  draft: "draft",
+  in_review: "in_review",
+  approved: "approved",
+} as const;
+
+export interface BusinessCaseSummary {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  orgId: number;
+  ownerId: string;
+  /** @nullable */
+  industry?: string | null;
+  currency: string;
+  timeHorizonMonths: number;
+  discountRate: number;
+  status: BusinessCaseSummaryStatus;
+  /** @nullable */
+  shareToken?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  totalInvestment: number;
+  totalExpectedValue: number;
+}
+
 export type BusinessCaseStatus =
   (typeof BusinessCaseStatus)[keyof typeof BusinessCaseStatus];
 

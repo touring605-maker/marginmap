@@ -1,19 +1,29 @@
 import { useState } from "react";
 import { useRoute } from "wouter";
 import { useCase } from "@/hooks/use-cases";
+import { useScenarios, useCreateScenarioMutation, useDeleteScenarioMutation } from "@/hooks/use-scenarios";
 import { Link } from "wouter";
-import { ArrowLeft, Settings, Calculator, Coins, BarChart3, Download, Copy, Share2 } from "lucide-react";
+import { ArrowLeft, Settings, Calculator, Coins, BarChart3, Share2, Plus, Trash2, Layers, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { OverviewTab } from "./case-editor/OverviewTab";
 import { CostsTab } from "./case-editor/CostsTab";
 import { ValuesTab } from "./case-editor/ValuesTab";
 import { ModelTab } from "./case-editor/ModelTab";
+import { Copy, Download } from "lucide-react";
 
 export default function CaseEditor() {
   const [, params] = useRoute("/cases/:id");
   const caseId = parseInt(params?.id || "0", 10);
-  
+
   const { data: caseData, isLoading } = useCase(caseId);
-  const [activeTab, setActiveTab] = useState("costs");
+  const { data: scenarios } = useScenarios(caseId);
+  const createScenario = useCreateScenarioMutation(caseId);
+  const deleteScenario = useDeleteScenarioMutation(caseId);
+
+  const [activeTab, setActiveTab] = useState("overview");
+  const [activeScenarioId, setActiveScenarioId] = useState<number | undefined>(undefined);
+  const [showScenarioPanel, setShowScenarioPanel] = useState(false);
+  const [newScenarioType, setNewScenarioType] = useState<"base" | "optimistic" | "conservative">("optimistic");
 
   if (isLoading) {
     return (
@@ -28,15 +38,28 @@ export default function CaseEditor() {
   }
 
   const tabs = [
+    { id: "overview", label: "Overview", icon: Settings },
     { id: "costs", label: "Cost Model", icon: Calculator },
     { id: "values", label: "Value Drivers", icon: Coins },
     { id: "model", label: "Financial Model", icon: BarChart3 },
     { id: "export", label: "Export & Share", icon: Share2 },
   ];
 
+  const handleAddScenario = () => {
+    createScenario.mutate(
+      {
+        id: caseId,
+        data: {
+          name: `${newScenarioType.charAt(0).toUpperCase() + newScenarioType.slice(1)} Scenario`,
+          type: newScenarioType,
+        },
+      },
+      { onSuccess: () => setShowScenarioPanel(false) }
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto pb-12 flex flex-col h-full min-h-[80vh]">
-      {/* Header */}
       <div className="mb-6">
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
@@ -45,22 +68,114 @@ export default function CaseEditor() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">{caseData.name}</h1>
             <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-              <span className="uppercase tracking-wider font-semibold text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">{caseData.status.replace('_', ' ')}</span>
-              <span>•</span>
+              <span className={`uppercase tracking-wider font-semibold text-xs px-2 py-0.5 rounded border ${
+                caseData.status === "approved"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                  : caseData.status === "in_review"
+                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
+                  : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+              }`}>
+                {caseData.status.replace("_", " ")}
+              </span>
               <span>{caseData.currency}</span>
-              <span>•</span>
               <span>{caseData.timeHorizonMonths} Months</span>
             </div>
           </div>
-          <button className="p-2 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-            <Settings className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
-      {/* Tabs Nav */}
+      {scenarios && scenarios.length > 0 && (
+        <div className="mb-4 flex items-center gap-2 flex-wrap">
+          <Layers className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Scenario:</span>
+          <button
+            onClick={() => setActiveScenarioId(undefined)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              activeScenarioId === undefined ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            All (No Filter)
+          </button>
+          {scenarios.map((s) => (
+            <div key={s.id} className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveScenarioId(s.id)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  activeScenarioId === s.id ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s.name}
+                <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider ${
+                  s.type === "optimistic" ? "bg-emerald-500/20 text-emerald-600" :
+                  s.type === "conservative" ? "bg-rose-500/20 text-rose-600" :
+                  "bg-blue-500/20 text-blue-600"
+                }`}>
+                  {s.type}
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  if (activeScenarioId === s.id) setActiveScenarioId(undefined);
+                  deleteScenario.mutate({ id: caseId, scenarioId: s.id });
+                }}
+                className="p-1 text-muted-foreground hover:text-destructive rounded transition-colors"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() => setShowScenarioPanel(!showScenarioPanel)}
+            className="px-2 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {!scenarios?.length && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowScenarioPanel(!showScenarioPanel)}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Layers className="w-4 h-4" />
+            <span>Add Scenarios (Optimistic / Base / Conservative)</span>
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {showScenarioPanel && (
+        <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border flex items-end gap-3">
+          <div>
+            <label className="block text-xs font-semibold mb-1">Scenario Type</label>
+            <select
+              value={newScenarioType}
+              onChange={(e) => setNewScenarioType(e.target.value as "base" | "optimistic" | "conservative")}
+              className="px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+            >
+              <option value="base">Base</option>
+              <option value="optimistic">Optimistic</option>
+              <option value="conservative">Conservative</option>
+            </select>
+          </div>
+          <button
+            onClick={handleAddScenario}
+            disabled={createScenario.isPending}
+            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 flex items-center gap-2"
+          >
+            {createScenario.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            Add
+          </button>
+          <button onClick={() => setShowScenarioPanel(false)} className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
+            Cancel
+          </button>
+        </div>
+      )}
+
       <div className="flex overflow-x-auto border-b border-border mb-8 scrollbar-hide">
-        {tabs.map(tab => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -78,7 +193,6 @@ export default function CaseEditor() {
         ))}
       </div>
 
-      {/* Tab Content Area */}
       <div className="flex-1">
         <AnimatePresence mode="wait">
           <motion.div
@@ -88,8 +202,9 @@ export default function CaseEditor() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {activeTab === "costs" && <CostsTab caseId={caseId} />}
-            {activeTab === "values" && <ValuesTab caseId={caseId} />}
+            {activeTab === "overview" && <OverviewTab caseId={caseId} caseData={caseData} />}
+            {activeTab === "costs" && <CostsTab caseId={caseId} scenarioId={activeScenarioId} />}
+            {activeTab === "values" && <ValuesTab caseId={caseId} scenarioId={activeScenarioId} />}
             {activeTab === "model" && <ModelTab caseId={caseId} />}
             {activeTab === "export" && (
               <div className="max-w-2xl mx-auto space-y-6 mt-8">
@@ -99,11 +214,10 @@ export default function CaseEditor() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Share Business Case</h3>
                   <p className="text-muted-foreground mb-6">Generate a read-only public link to share with stakeholders.</p>
-                  
                   <div className="flex items-center gap-2 max-w-md mx-auto">
-                    <input 
-                      readOnly 
-                      value={`https://app.casebuilder.com/public/${caseData.shareToken || 'generate-token-first'}`}
+                    <input
+                      readOnly
+                      value={caseData.shareToken ? `${window.location.origin}/cases/public/${caseData.shareToken}` : "Generate a share link first"}
                       className="flex-1 bg-slate-50 dark:bg-slate-950 border border-border rounded-lg px-4 py-2 text-sm text-muted-foreground font-mono"
                     />
                     <button className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-foreground transition-colors">
@@ -111,7 +225,6 @@ export default function CaseEditor() {
                     </button>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <button className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group">
                     <Download className="w-8 h-8 text-slate-400 group-hover:text-primary mb-3" />
