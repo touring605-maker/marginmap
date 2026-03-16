@@ -8,6 +8,7 @@ import {
   getGetBusinessCaseQueryKey,
 } from "@workspace/api-client-react";
 import { useFinancialModelData } from "@/hooks/use-cases";
+import { useAuth } from "@workspace/replit-auth-web";
 import { Share2, Copy, Check, Download, Loader2, Link2, Link2Off, FileText, Table } from "lucide-react";
 import type { BusinessCase } from "@workspace/api-client-react";
 
@@ -19,6 +20,7 @@ interface ExportTabProps {
 
 export function ExportTab({ caseId, caseData, scenarioId }: ExportTabProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const enableShare = useEnableSharing();
   const disableShare = useDisableSharing();
   const { data: costs } = useListCostLineItems(caseId, { scenarioId });
@@ -58,7 +60,8 @@ export function ExportTab({ caseId, caseData, scenarioId }: ExportTabProps) {
     setPdfLoading(true);
     try {
       const { generatePdf } = await import("@/lib/exportPdf");
-      await generatePdf({ caseData, costs, values, model });
+      const ownerName = user?.firstName || user?.id || "Unknown";
+      await generatePdf({ caseData, costs, values, model, ownerName });
     } catch (err) {
       console.error("PDF generation failed:", err);
     } finally {

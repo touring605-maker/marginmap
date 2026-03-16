@@ -11,6 +11,7 @@ import NewCase from "./pages/NewCase";
 import CaseEditor from "./pages/CaseEditor";
 import Canvas from "./pages/Canvas";
 import PublicView from "./pages/PublicView";
+import CasePublicView from "./pages/CasePublicView";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ function Router() {
       {/* Public Routes */}
       <Route path="/login" component={Login} />
       <Route path="/cases/public/:token" component={PublicView} />
+      <Route path="/cases/:id/view" component={CasePublicView} />
       
       {/* Protected Routes (Wrapped in AppLayout) */}
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
