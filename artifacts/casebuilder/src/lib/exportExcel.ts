@@ -112,7 +112,7 @@ export function generateExcel({ caseData, costs, values, model }: ExcelData): vo
   ];
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
   wsSummary["!cols"] = [{ wch: 30 }, { wch: 25 }];
-  XLSX.utils.book_append_sheet(wb, wsSummary, "NPV-IRR Summary");
+  XLSX.utils.book_append_sheet(wb, wsSummary, "NPV IRR Summary");
 
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   const blob = new Blob([wbout], { type: "application/octet-stream" });

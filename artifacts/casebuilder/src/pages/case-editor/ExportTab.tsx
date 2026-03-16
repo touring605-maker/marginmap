@@ -32,7 +32,7 @@ export function ExportTab({ caseId, caseData, scenarioId }: ExportTabProps) {
   const [excelLoading, setExcelLoading] = useState(false);
 
   const shareUrl = caseData.shareToken
-    ? `${window.location.origin}${import.meta.env.BASE_URL}cases/public/${caseData.shareToken}`
+    ? `${window.location.origin}${import.meta.env.BASE_URL}cases/${caseId}/view?token=${caseData.shareToken}`
     : null;
 
   const handleToggleShare = () => {
