@@ -5,7 +5,6 @@
  * CaseBuilder API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { CaseDependencyCanvasPositionJson } from "./caseDependencyCanvasPositionJson";
 import type { CaseDependencyDependencyType } from "./caseDependencyDependencyType";
 
 export interface CaseDependency {
@@ -17,6 +16,4 @@ export interface CaseDependency {
   conditionThreshold?: number | null;
   /** @nullable */
   cascadeField?: string | null;
-  /** @nullable */
-  canvasPositionJson?: CaseDependencyCanvasPositionJson;
 }

@@ -17,6 +17,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isCanvasPage = location === "/canvas";
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -108,16 +109,22 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="max-w-6xl mx-auto h-full"
-          >
+        {isCanvasPage ? (
+          <div className="flex-1 overflow-hidden">
             {children}
-          </motion.div>
-        </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-4 md:p-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="max-w-6xl mx-auto h-full"
+            >
+              {children}
+            </motion.div>
+          </div>
+        )}
       </main>
 
       {/* Mobile overlay */}

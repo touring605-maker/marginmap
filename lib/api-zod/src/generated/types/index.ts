@@ -21,7 +21,6 @@ export * from "./canvasCaseNodeStatus";
 export * from "./canvasNodePosition";
 export * from "./canvasState";
 export * from "./caseDependency";
-export * from "./caseDependencyCanvasPositionJson";
 export * from "./caseDependencyDependencyType";
 export * from "./cashFlowPeriod";
 export * from "./costLineItem";

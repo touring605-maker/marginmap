@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, real, varchar, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, real, varchar, pgEnum } from "drizzle-orm/pg-core";
 import { businessCasesTable } from "./businessCases";
 
 export const dependencyTypeEnum = pgEnum("dependency_type", ["sequential", "parallel", "conditional"]);
@@ -10,7 +10,6 @@ export const caseDependenciesTable = pgTable("case_dependencies", {
   dependencyType: dependencyTypeEnum("dependency_type").notNull(),
   conditionThreshold: real("condition_threshold"),
   cascadeField: varchar("cascade_field"),
-  canvasPositionJson: jsonb("canvas_position_json"),
 });
 
 export type CaseDependency = typeof caseDependenciesTable.$inferSelect;

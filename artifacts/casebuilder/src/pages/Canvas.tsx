@@ -316,7 +316,7 @@ export default function Canvas() {
 
   if (isLoading) {
     return (
-      <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
+      <div className="h-full flex items-center justify-center">
         <Loader2 className="animate-spin w-8 h-8 text-primary" />
       </div>
     );
@@ -324,7 +324,7 @@ export default function Canvas() {
 
   if (!cases || cases.length === 0) {
     return (
-      <div className="h-[calc(100vh-4rem)] flex flex-col items-center justify-center text-center px-4">
+      <div className="h-full flex flex-col items-center justify-center text-center px-4">
         <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
           <Network className="w-8 h-8 text-primary" />
         </div>
@@ -337,7 +337,7 @@ export default function Canvas() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] relative">
+    <div className="h-full relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
