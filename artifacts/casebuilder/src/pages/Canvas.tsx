@@ -194,11 +194,12 @@ export default function Canvas() {
     if (positions.length === 0 && newEdges.length > 0) {
       const laid = getAutoLayout(newNodes, newEdges);
       setNodes(laid);
+      debounceSavePositions(laid);
     } else {
       setNodes(newNodes);
     }
     setEdges(newEdges);
-  }, [cases, positionsData, deps, casesLoading, posLoading, depsLoading, setNodes, setEdges, handleDeleteDep, modelMap, scenarioCountMap]);
+  }, [cases, positionsData, deps, casesLoading, posLoading, depsLoading, setNodes, setEdges, handleDeleteDep, modelMap, scenarioCountMap, debounceSavePositions]);
 
   useEffect(() => {
     if (!initialized.current) return;
