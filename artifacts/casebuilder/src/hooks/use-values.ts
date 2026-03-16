@@ -10,7 +10,7 @@ import {
 
 export function useValues(caseId: number, scenarioId?: number) {
   return useListValueDrivers(caseId, { scenarioId }, {
-    query: { enabled: !!caseId }
+    query: { queryKey: getListValueDriversQueryKey(caseId, { scenarioId }), enabled: !!caseId }
   });
 }
 

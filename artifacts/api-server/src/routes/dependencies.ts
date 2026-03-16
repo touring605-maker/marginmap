@@ -82,20 +82,6 @@ router.patch("/dependencies/:id", async (req: Request, res: Response): Promise<v
     res.status(404).json({ error: "Dependency not found" });
     return;
   }
-  if (body.data.fromCaseId !== undefined) {
-    const fromOwned = await verifyCaseOwnership(body.data.fromCaseId, org.id);
-    if (!fromOwned) {
-      res.status(403).json({ error: "Target case must belong to your organization" });
-      return;
-    }
-  }
-  if (body.data.toCaseId !== undefined) {
-    const toOwned = await verifyCaseOwnership(body.data.toCaseId, org.id);
-    if (!toOwned) {
-      res.status(403).json({ error: "Target case must belong to your organization" });
-      return;
-    }
-  }
   const [dep] = await db.update(caseDependenciesTable).set(body.data).where(eq(caseDependenciesTable.id, params.data.id)).returning();
   if (!dep) {
     res.status(404).json({ error: "Dependency not found" });

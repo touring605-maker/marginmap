@@ -58,6 +58,7 @@ export function useDeleteCase() {
 export function useFinancialModelData(id: number, scenarioId?: number) {
   return useGetFinancialModel(id, { scenarioId }, {
     query: {
+      queryKey: getGetFinancialModelQueryKey(id, { scenarioId }),
       enabled: !!id,
       retry: false
     }

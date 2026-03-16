@@ -10,7 +10,7 @@ import {
 
 export function useCosts(caseId: number, scenarioId?: number) {
   return useListCostLineItems(caseId, { scenarioId }, {
-    query: { enabled: !!caseId }
+    query: { queryKey: getListCostLineItemsQueryKey(caseId, { scenarioId }), enabled: !!caseId }
   });
 }
 

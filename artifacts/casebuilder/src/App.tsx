@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuth } from "@workspace/replit-auth-web";
@@ -15,8 +15,7 @@ import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient();
 
-// Protected Route Wrapper
-function ProtectedRoute({ component: Component, ...rest }: any) {
+function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<Record<string, unknown>> } & Record<string, unknown>) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 

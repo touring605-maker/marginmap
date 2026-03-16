@@ -1,5 +1,5 @@
 import { useRoute } from "wouter";
-import { useGetPublicCase } from "@workspace/api-client-react";
+import { useGetPublicCase, getGetPublicCaseQueryKey } from "@workspace/api-client-react";
 import { Loader2, Lock } from "lucide-react";
 
 export default function PublicView() {
@@ -7,7 +7,7 @@ export default function PublicView() {
   const token = params?.token || "";
   
   const { data, isLoading, error } = useGetPublicCase(token, {
-    query: { enabled: !!token, retry: false }
+    query: { queryKey: getGetPublicCaseQueryKey(token), enabled: !!token, retry: false }
   });
 
   if (isLoading) {

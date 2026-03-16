@@ -218,7 +218,9 @@ export const ApplyIndustryTemplateParams = zod.object({
   id: zod.coerce.number(),
 });
 
-export const ApplyIndustryTemplateBody = zod.unknown();
+export const ApplyIndustryTemplateBody = zod.object({
+  templateId: zod.string(),
+});
 
 export const ApplyIndustryTemplateResponseItem = zod.object({
   id: zod.number(),

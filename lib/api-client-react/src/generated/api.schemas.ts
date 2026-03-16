@@ -554,6 +554,10 @@ export interface IndustryTemplate {
   costItems: TemplateCostItem[];
 }
 
+export interface ApplyTemplateBody {
+  templateId: string;
+}
+
 /**
  * Opaque session token
  */

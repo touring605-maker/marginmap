@@ -1394,3 +1394,10 @@ components:
           type: number
         depreciationYears:
           type: integer
+
+    ApplyTemplateBody:
+      type: object
+      required: [templateId]
+      properties:
+        templateId:
+          type: string
