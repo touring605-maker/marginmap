@@ -321,7 +321,6 @@ function UserTemplateContentEditor({
                   <select value={newCost.frequency} onChange={(e) => setNewCost({ ...newCost, frequency: e.target.value })} className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none">
                     <option value="annually">Annually</option>
                     <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
                     <option value="once">Once</option>
                   </select>
                 </div>

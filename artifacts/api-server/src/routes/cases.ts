@@ -819,33 +819,48 @@ router.post("/cases/:id/apply-user-template", async (req: Request, res: Response
   let createdCosts: typeof costLineItemsTable.$inferSelect[] = [];
   let createdValues: typeof valueDriversTable.$inferSelect[] = [];
 
+  const VALID_TYPES = ["one_time", "capex", "opex", "escalating", "transition"] as const;
+  const VALID_FREQ = ["once", "monthly", "annually"] as const;
+  const VALID_PHASES = ["current_state", "future_state", "project_cost"] as const;
+  const VALID_DRIVER_TYPES = ["cost_reduction", "revenue", "margin", "productivity", "risk"] as const;
+  const VALID_CONFIDENCE = ["high", "medium", "low"] as const;
+
   const costItems = (template.costItems as Array<Record<string, unknown>>) || [];
   if (costItems.length > 0) {
-    const costRows = costItems.map(item => ({
-      businessCaseId: caseId,
-      name: String(item.name || ""),
-      description: item.description ? String(item.description) : null,
-      type: String(item.type || "opex") as "one_time" | "capex" | "opex" | "escalating" | "transition",
-      amount: Number(item.amount || 0),
-      frequency: String(item.frequency || "annually") as "once" | "monthly" | "annually",
-      escalationRate: item.escalationRate ? Number(item.escalationRate) : null,
-      depreciationYears: item.depreciationYears ? Number(item.depreciationYears) : null,
-      costPhase: (String(item.costPhase || "project_cost")) as "current_state" | "future_state" | "project_cost",
-    }));
+    const costRows = costItems.map(item => {
+      const rawType = String(item.type || "opex");
+      const rawFreq = String(item.frequency || "annually");
+      const rawPhase = String(item.costPhase || "project_cost");
+      return {
+        businessCaseId: caseId,
+        name: String(item.name || ""),
+        description: item.description ? String(item.description) : null,
+        type: (VALID_TYPES.includes(rawType as typeof VALID_TYPES[number]) ? rawType : "opex") as typeof VALID_TYPES[number],
+        amount: Number(item.amount || 0),
+        frequency: (VALID_FREQ.includes(rawFreq as typeof VALID_FREQ[number]) ? rawFreq : "annually") as typeof VALID_FREQ[number],
+        escalationRate: item.escalationRate ? Number(item.escalationRate) : null,
+        depreciationYears: item.depreciationYears ? Number(item.depreciationYears) : null,
+        costPhase: (VALID_PHASES.includes(rawPhase as typeof VALID_PHASES[number]) ? rawPhase : "project_cost") as typeof VALID_PHASES[number],
+      };
+    });
     createdCosts = await db.insert(costLineItemsTable).values(costRows).returning();
   }
 
   const valueDriverItems = (template.valueDrivers as Array<Record<string, unknown>>) || [];
   if (valueDriverItems.length > 0) {
-    const valueRows = valueDriverItems.map(v => ({
-      businessCaseId: caseId,
-      name: String(v.name || ""),
-      description: v.description ? String(v.description) : null,
-      type: String(v.type || "cost_reduction") as "cost_reduction" | "revenue" | "margin" | "productivity" | "risk",
-      annualValue: Number(v.annualValue || 0),
-      confidenceLevel: String(v.confidenceLevel || "medium") as "high" | "medium" | "low",
-      monthsToRealize: Number(v.monthsToRealize || 0),
-    }));
+    const valueRows = valueDriverItems.map(v => {
+      const rawType = String(v.type || "cost_reduction");
+      const rawConf = String(v.confidenceLevel || "medium");
+      return {
+        businessCaseId: caseId,
+        name: String(v.name || ""),
+        description: v.description ? String(v.description) : null,
+        type: (VALID_DRIVER_TYPES.includes(rawType as typeof VALID_DRIVER_TYPES[number]) ? rawType : "cost_reduction") as typeof VALID_DRIVER_TYPES[number],
+        annualValue: Number(v.annualValue || 0),
+        confidenceLevel: (VALID_CONFIDENCE.includes(rawConf as typeof VALID_CONFIDENCE[number]) ? rawConf : "medium") as typeof VALID_CONFIDENCE[number],
+        monthsToRealize: Number(v.monthsToRealize || 0),
+      };
+    });
     createdValues = await db.insert(valueDriversTable).values(valueRows).returning();
   }
 
