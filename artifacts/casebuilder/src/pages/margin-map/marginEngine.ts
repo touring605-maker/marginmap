@@ -317,15 +317,17 @@ function checkConstraints(
     }
   }
 
-  if (channels.dtc.contributionMargin > 0 && d.dtcVolume > 0) {
-    const cmPerUnit = channels.dtc.contributionMargin / d.dtcVolume;
+  if (d.dtcVolume > 0) {
+    const cmPerUnit = d.dtcVolume > 0 ? channels.dtc.contributionMargin / d.dtcVolume : 0;
     const paybackMonths = cmPerUnit > 0 ? d.dtcCAC / cmPerUnit : Infinity;
     if (paybackMonths > 12) {
       flags.push({
         type: 'cac_payback',
         channel: 'dtc',
         scenarioName: scenario.name,
-        message: `DTC CAC payback period is ${paybackMonths === Infinity ? '∞' : paybackMonths.toFixed(1)} months (>12 months)`,
+        message: paybackMonths === Infinity
+          ? `DTC CAC payback is non-viable (negative/zero contribution margin)`
+          : `DTC CAC payback period is ${paybackMonths.toFixed(1)} months (>12 months)`,
         value: paybackMonths,
         severity: 'critical',
       });

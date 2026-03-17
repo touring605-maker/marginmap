@@ -234,14 +234,24 @@ export function SensitivityTable({ baseline, scenarios }: Props) {
               const isCurrentScenarioValue = Math.abs(row.driverValue - refDriverValue) < 0.001 * Math.max(1, Math.abs(refDriverValue));
 
               let deltaColor = 'text-muted-foreground';
-              if (row.delta > 0.001) deltaColor = 'text-[#4C7960]';
-              if (row.delta < -0.001) deltaColor = 'text-red-500';
+              let rowBg = 'hover:bg-slate-50/50';
+              if (row.delta > 0.001) {
+                deltaColor = 'text-[#4C7960]';
+                rowBg = 'bg-green-50/60';
+              }
+              if (row.delta < -0.001) {
+                deltaColor = 'text-red-500';
+                rowBg = 'bg-red-50/60';
+              }
+              if (isCurrentScenarioValue) {
+                rowBg = 'bg-[#131568]/5';
+              }
 
               return (
                 <tr
                   key={i}
-                  className={`border-b border-border/30 ${
-                    isCurrentScenarioValue ? 'bg-[#131568]/5 font-semibold' : 'hover:bg-slate-50/50'
+                  className={`border-b border-border/30 ${rowBg} ${
+                    isCurrentScenarioValue ? 'font-semibold' : ''
                   }`}
                 >
                   <td className="px-4 py-2 text-foreground font-mono tabular-nums">
