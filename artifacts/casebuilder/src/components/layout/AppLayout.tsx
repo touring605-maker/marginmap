@@ -9,7 +9,8 @@ import {
   LogOut,
   Building2,
   Menu,
-  X
+  X,
+  TrendingUp
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +25,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Business Cases", href: "/cases", icon: Briefcase },
     { name: "Value Map", href: "/canvas", icon: Network },
+    { name: "Margin Map", href: "/margin-map", icon: TrendingUp },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 

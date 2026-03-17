@@ -11,6 +11,7 @@ import NewCase from "./pages/NewCase";
 import CaseEditor from "./pages/CaseEditor";
 import Canvas from "./pages/Canvas";
 import SettingsPage from "./pages/Settings";
+import MarginMap from "./pages/MarginMap";
 import PublicView from "./pages/PublicView";
 import CasePublicView from "./pages/CasePublicView";
 import NotFound from "./pages/not-found";
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/cases/:id" component={() => <ProtectedRoute component={CaseEditor} />} />
       <Route path="/canvas" component={() => <ProtectedRoute component={Canvas} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
+      <Route path="/margin-map" component={() => <ProtectedRoute component={MarginMap} />} />
       
       {/* Fallback */}
       <Route component={NotFound} />
