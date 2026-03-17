@@ -241,7 +241,7 @@ export function ScenarioDashboard() {
                   return (
                     <tr key={rowIdx} className="bg-[#131568]/5">
                       <td
-                        colSpan={displayScenarios.length + (displayScenarios.length > 1 ? displayScenarios.length - 1 : 0)}
+                        colSpan={1 + displayScenarios.length + (displayScenarios.length > 1 ? displayScenarios.length - 1 : 0)}
                         className="text-xs font-bold text-[#131568] px-4 py-2 uppercase tracking-wider sticky left-0 bg-[#131568]/5 z-10"
                       >
                         {row.label}

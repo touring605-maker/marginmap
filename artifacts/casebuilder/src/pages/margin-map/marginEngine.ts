@@ -130,7 +130,8 @@ function resolveDrivers(baseline: BaselineData, overrides: ScenarioDriverOverrid
   if (overrides.sharedCostBehavior !== undefined) resolved.sharedCostBehavior = overrides.sharedCostBehavior;
 
   if (overrides.channelMixShift) {
-    const { from, to, pct } = overrides.channelMixShift;
+    const { from, to, pct: rawPct } = overrides.channelMixShift;
+    const pct = Math.max(0, Math.min(1, rawPct));
     const volumeKey = (ch: Channel) => `${ch}Volume` as keyof BaselineData;
     const fromVol = resolved[volumeKey(from)] as number;
     const shift = Math.round(fromVol * pct);
