@@ -133,7 +133,7 @@ export const ListBusinessCasesResponseItem = zod.object({
   description: zod.string().nullish(),
   orgId: zod.number(),
   ownerId: zod.string(),
-  companyId: zod.number().nullable().optional(),
+  companyId: zod.number().nullish(),
   industry: zod.string().nullish(),
   currency: zod.string(),
   timeHorizonMonths: zod.number(),
@@ -156,11 +156,11 @@ export const ListBusinessCasesResponse = zod.array(
 export const CreateBusinessCaseBody = zod.object({
   name: zod.string().min(1),
   description: zod.string().optional(),
-  companyId: zod.number().int().nullable().optional(),
   industry: zod.string().optional(),
   currency: zod.string().min(1),
   timeHorizonMonths: zod.number().min(1),
   discountRate: zod.number().optional(),
+  companyId: zod.number().nullish(),
 });
 
 /**
@@ -176,7 +176,7 @@ export const GetBusinessCaseResponse = zod.object({
   description: zod.string().nullish(),
   orgId: zod.number(),
   ownerId: zod.string(),
-  companyId: zod.number().nullable().optional(),
+  companyId: zod.number().nullish(),
   industry: zod.string().nullish(),
   currency: zod.string(),
   timeHorizonMonths: zod.number(),
@@ -197,12 +197,12 @@ export const UpdateBusinessCaseParams = zod.object({
 export const UpdateBusinessCaseBody = zod.object({
   name: zod.string().min(1).optional(),
   description: zod.string().nullish(),
-  companyId: zod.number().int().nullable().optional(),
   industry: zod.string().nullish(),
   currency: zod.string().optional(),
   timeHorizonMonths: zod.number().min(1).optional(),
   discountRate: zod.number().optional(),
   status: zod.enum(["draft", "in_review", "approved"]).optional(),
+  companyId: zod.number().nullish(),
 });
 
 export const UpdateBusinessCaseResponse = zod.object({
@@ -211,7 +211,7 @@ export const UpdateBusinessCaseResponse = zod.object({
   description: zod.string().nullish(),
   orgId: zod.number(),
   ownerId: zod.string(),
-  companyId: zod.number().nullable().optional(),
+  companyId: zod.number().nullish(),
   industry: zod.string().nullish(),
   currency: zod.string(),
   timeHorizonMonths: zod.number(),
@@ -643,6 +643,7 @@ export const GetPublicCaseResponse = zod.object({
     description: zod.string().nullish(),
     orgId: zod.number(),
     ownerId: zod.string(),
+    companyId: zod.number().nullish(),
     industry: zod.string().nullish(),
     currency: zod.string(),
     timeHorizonMonths: zod.number(),

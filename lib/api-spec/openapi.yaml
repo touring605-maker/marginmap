@@ -1089,6 +1089,8 @@ components:
           type: integer
         ownerId:
           type: string
+        companyId:
+          type: [integer, 'null']
         industry:
           type: [string, 'null']
         currency:
@@ -1127,6 +1129,8 @@ components:
           type: integer
         ownerId:
           type: string
+        companyId:
+          type: [integer, 'null']
         industry:
           type: [string, 'null']
         currency:
@@ -1166,6 +1170,8 @@ components:
           minimum: 1
         discountRate:
           type: number
+        companyId:
+          type: [integer, 'null']
 
     UpdateBusinessCaseBody:
       type: object
@@ -1187,6 +1193,8 @@ components:
         status:
           type: string
           enum: [draft, in_review, approved]
+        companyId:
+          type: [integer, 'null']
 
     CostLineItem:
       type: object

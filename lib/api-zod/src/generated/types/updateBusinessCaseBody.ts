@@ -19,4 +19,6 @@ export interface UpdateBusinessCaseBody {
   timeHorizonMonths?: number;
   discountRate?: number;
   status?: UpdateBusinessCaseBodyStatus;
+  /** @nullable */
+  companyId?: number | null;
 }

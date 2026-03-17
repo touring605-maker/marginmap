@@ -18,6 +18,7 @@ export interface BaselineData {
   wholesaleCommissionRate: number;
   returnProcessingCostPerUnit: number;
   totalSharedCostPool: number;
+  dnaPerPeriod?: number;
   sharedCostBehavior: SharedCostBehavior;
   stepFixedThresholdVolume?: number;
   stepFixedIncrease?: number;
@@ -79,6 +80,8 @@ export interface ChannelMetrics {
   contributionMargin: number;
   contributionMarginPct: number;
   allocatedSharedCosts: number;
+  allocatedDNA: number;
+  channelEBITDA: number;
   channelNetMargin: number;
   channelNetMarginPct: number;
 }
@@ -196,6 +199,8 @@ function computeChannelMetrics(channel: Channel, d: BaselineData): ChannelMetric
     contributionMargin,
     contributionMarginPct,
     allocatedSharedCosts: 0,
+    allocatedDNA: 0,
+    channelEBITDA: contributionMargin,
     channelNetMargin: contributionMargin,
     channelNetMarginPct: contributionMarginPct,
   };
@@ -226,7 +231,8 @@ function computeSharedCostPool(d: BaselineData, baseline: BaselineData): number 
 
 function allocateSharedCosts(
   channels: Record<Channel, ChannelMetrics>,
-  sharedPool: number
+  sharedPool: number,
+  dnaPool: number
 ): void {
   const totalRevenue =
     channels.wholesale.netRevenue +
@@ -237,8 +243,11 @@ function allocateSharedCosts(
   for (const ch of allChannels) {
     const share = totalRevenue !== 0 ? channels[ch].netRevenue / totalRevenue : 1 / 3;
     const allocated = sharedPool * share;
+    const allocatedDNA = dnaPool * share;
     channels[ch].allocatedSharedCosts = allocated;
+    channels[ch].allocatedDNA = allocatedDNA;
     channels[ch].channelNetMargin = channels[ch].contributionMargin - allocated;
+    channels[ch].channelEBITDA = channels[ch].channelNetMargin + allocatedDNA;
     channels[ch].channelNetMarginPct =
       channels[ch].netRevenue !== 0
         ? channels[ch].channelNetMargin / channels[ch].netRevenue
@@ -349,7 +358,8 @@ export function computeScenario(
   };
 
   const sharedPool = computeSharedCostPool(d, baseline);
-  allocateSharedCosts(channels, sharedPool);
+  const dnaPool = d.dnaPerPeriod ?? 0;
+  allocateSharedCosts(channels, sharedPool, dnaPool);
 
   const aggregate = computeAggregate(channels);
   const constraints = checkConstraints(scenario, d, channels);
@@ -399,6 +409,7 @@ export const DRIVER_LABELS: Record<string, string> = {
   wholesaleCommissionRate: 'Sales Commission Rate (Wholesale)',
   returnProcessingCostPerUnit: 'Return Processing Cost / Unit',
   totalSharedCostPool: 'Total Shared Cost Pool',
+  dnaPerPeriod: 'Depreciation & Amortization (D&A)',
   sharedCostBehavior: 'Shared Cost Behavior',
   stepFixedThresholdVolume: 'Step-Fixed Threshold Volume',
   stepFixedIncrease: 'Step-Fixed Increase Amount',
@@ -442,5 +453,6 @@ export const CURRENCY_DRIVERS = new Set([
   'dtcCAC',
   'returnProcessingCostPerUnit',
   'totalSharedCostPool',
+  'dnaPerPeriod',
   'stepFixedIncrease',
 ]);

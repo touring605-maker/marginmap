@@ -15,6 +15,8 @@ export interface BusinessCase {
   orgId: number;
   ownerId: string;
   /** @nullable */
+  companyId?: number | null;
+  /** @nullable */
   industry?: string | null;
   currency: string;
   timeHorizonMonths: number;

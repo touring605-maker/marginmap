@@ -139,14 +139,14 @@ export interface CreateBusinessCaseBody {
   /** @minLength 1 */
   name: string;
   description?: string;
-  /** @nullable */
-  companyId?: number | null;
   industry?: string;
   /** @minLength 1 */
   currency: string;
   /** @minimum 1 */
   timeHorizonMonths: number;
   discountRate?: number;
+  /** @nullable */
+  companyId?: number | null;
 }
 
 export type UpdateBusinessCaseBodyStatus =
@@ -164,14 +164,14 @@ export interface UpdateBusinessCaseBody {
   /** @nullable */
   description?: string | null;
   /** @nullable */
-  companyId?: number | null;
-  /** @nullable */
   industry?: string | null;
   currency?: string;
   /** @minimum 1 */
   timeHorizonMonths?: number;
   discountRate?: number;
   status?: UpdateBusinessCaseBodyStatus;
+  /** @nullable */
+  companyId?: number | null;
 }
 
 export type CostLineItemType =

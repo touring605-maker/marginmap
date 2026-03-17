@@ -74,6 +74,7 @@ const DEFAULT_BASELINE: BaselineData = {
   wholesaleCommissionRate: 0.05,
   returnProcessingCostPerUnit: 4,
   totalSharedCostPool: 200000,
+  dnaPerPeriod: 0,
   sharedCostBehavior: 'fixed',
   stepFixedThresholdVolume: 20000,
   stepFixedIncrease: 50000,
@@ -317,6 +318,7 @@ export function SetupWizard() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Total Shared Cost Pool" value={data.totalSharedCostPool} onChange={(v) => update('totalSharedCostPool', v)} prefix="$" step={1000} />
+              <Field label="Depreciation & Amortization (D&A)" tooltip="Annual or periodic D&A expense allocated across channels revenue-weighted. Used to compute EBITDA in the waterfall." value={data.dnaPerPeriod ?? 0} onChange={(v) => update('dnaPerPeriod', v)} prefix="$" step={1000} />
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
                   Shared Cost Behavior

@@ -132,6 +132,7 @@ export function BaselineEditor({ onClose }: Props) {
           <h4 className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2">Shared Costs & Constraints</h4>
           <div className="space-y-2">
             <Field label={DRIVER_LABELS.totalSharedCostPool} value={data.totalSharedCostPool} onChange={(v) => update('totalSharedCostPool', v)} prefix="$" step={1000} />
+            <Field label={DRIVER_LABELS.dnaPerPeriod} tooltip="D&A allocated revenue-weighted across channels for EBITDA calculation." value={data.dnaPerPeriod ?? 0} onChange={(v) => update('dnaPerPeriod', v)} prefix="$" step={1000} />
             <div>
               <label className="block text-[10px] font-medium text-foreground mb-0.5">{DRIVER_LABELS.sharedCostBehavior}</label>
               <select

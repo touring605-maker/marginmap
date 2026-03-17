@@ -16,4 +16,6 @@ export interface CreateBusinessCaseBody {
   /** @minimum 1 */
   timeHorizonMonths: number;
   discountRate?: number;
+  /** @nullable */
+  companyId?: number | null;
 }
