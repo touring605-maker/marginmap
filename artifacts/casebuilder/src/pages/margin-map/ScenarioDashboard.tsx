@@ -124,7 +124,7 @@ export function ScenarioDashboard() {
           <h2 className="text-xl font-display font-bold text-foreground">Scenario Dashboard</h2>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-xs text-muted-foreground">
-              Shared Cost Allocation: <span className="font-semibold text-foreground">Revenue-Weighted</span>
+              Shared Cost Allocation: <span className="font-semibold text-foreground">{baseline.sharedCostBehavior === 'variable' ? 'Volume-Weighted' : 'Revenue-Weighted'}</span>
             </span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">
               Behavior: {behaviorLabel}
