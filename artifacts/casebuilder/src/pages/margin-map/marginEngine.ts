@@ -99,7 +99,7 @@ export interface ConstraintFlag {
   scenarioName: string;
   message: string;
   value?: number;
-  severity: 'warning' | 'critical';
+  severity: 'info' | 'warning' | 'critical';
 }
 
 export interface ScenarioResult {
@@ -318,20 +318,19 @@ function checkConstraints(
   }
 
   if (d.dtcVolume > 0) {
-    const cmPerUnit = d.dtcVolume > 0 ? channels.dtc.contributionMargin / d.dtcVolume : 0;
+    const cmPerUnit = channels.dtc.contributionMargin / d.dtcVolume;
     const paybackMonths = cmPerUnit > 0 ? d.dtcCAC / cmPerUnit : Infinity;
-    if (paybackMonths > 12) {
-      flags.push({
-        type: 'cac_payback',
-        channel: 'dtc',
-        scenarioName: scenario.name,
-        message: paybackMonths === Infinity
-          ? `DTC CAC payback is non-viable (negative/zero contribution margin)`
-          : `DTC CAC payback period is ${paybackMonths.toFixed(1)} months (>12 months)`,
-        value: paybackMonths,
-        severity: 'critical',
-      });
-    }
+    const healthy = paybackMonths <= 12;
+    flags.push({
+      type: 'cac_payback',
+      channel: 'dtc',
+      scenarioName: scenario.name,
+      message: paybackMonths === Infinity
+        ? `DTC CAC payback is non-viable (negative/zero contribution margin)`
+        : `DTC CAC payback period is ${paybackMonths.toFixed(1)} months${!healthy ? ' (>12 months)' : ''}`,
+      value: paybackMonths,
+      severity: healthy ? 'info' : 'critical',
+    });
   }
 
   return flags;
