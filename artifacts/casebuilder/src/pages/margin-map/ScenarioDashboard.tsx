@@ -188,9 +188,9 @@ export function ScenarioDashboard() {
                   Metric
                 </th>
                 {displayScenarios.map((s, i) => (
-                  <th key={s.id} className="text-right text-xs font-semibold text-foreground px-4 py-3 min-w-[140px]">
+                  <th key={s.id} className="text-right text-xs font-semibold text-foreground px-4 py-3 min-w-[140px] max-w-[180px]">
                     <div className="flex items-center justify-end gap-1">
-                      <span className={s.isBaseline ? 'text-[#131568]' : 'text-foreground'}>{s.name}</span>
+                      <span className={`truncate max-w-[120px] ${s.isBaseline ? 'text-[#131568]' : 'text-foreground'}`} title={s.name}>{s.name}</span>
                       {!s.isBaseline && (
                         <div className="flex items-center gap-0.5 ml-1">
                           <button
@@ -216,8 +216,10 @@ export function ScenarioDashboard() {
                   </th>
                 ))}
                 {displayScenarios.length > 1 && displayScenarios.slice(1).map((s) => (
-                  <th key={`delta-${s.id}`} className="text-right text-xs font-semibold px-4 py-3 min-w-[100px] bg-slate-100/50">
-                    <span className="text-muted-foreground">Δ {s.name}</span>
+                  <th key={`delta-${s.id}`} className="text-right text-xs font-semibold px-4 py-3 min-w-[100px] max-w-[140px] bg-slate-100/50">
+                    <span className="text-muted-foreground truncate block max-w-[120px] text-right" title={`Δ ${s.name}`}>
+                      Δ {s.name.length > 12 ? s.name.slice(0, 10) + '…' : s.name}
+                    </span>
                   </th>
                 ))}
               </tr>

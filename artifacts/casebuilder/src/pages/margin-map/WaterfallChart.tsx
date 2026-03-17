@@ -78,9 +78,9 @@ function buildWaterfallData(result: ScenarioResult, channel: Channel): Waterfall
   return data;
 }
 
-const CHART_HEIGHT = 380;
+const CHART_HEIGHT = 400;
 const M_TOP = 32;
-const M_BOTTOM = 72;
+const M_BOTTOM = 96;
 const M_LEFT = 76;
 const M_RIGHT = 20;
 const PLOT_H = CHART_HEIGHT - M_TOP - M_BOTTOM;
@@ -199,21 +199,31 @@ function WaterfallSVG({
         </text>
       ))}
 
+      {/* Plot-area clip path: keeps bar value labels inside the chart area */}
+      <defs>
+        <clipPath id="plot-clip">
+          <rect x={M_LEFT} y={M_TOP - 18} width={width - M_LEFT - M_RIGHT} height={PLOT_H + 18} />
+        </clipPath>
+      </defs>
+
       {/* Primary bars */}
       {primary.map((step, i) => {
         const { y, h } = barRect(step);
         const bx = primaryX(i);
         const cx = bx + singleW / 2;
+        // Clamp label positions so they never escape the SVG bounds
+        const totalLabelY = Math.max(M_TOP + 10, y - 5);
+        const deltaLabelY = Math.min(CHART_HEIGHT - M_BOTTOM - 4, y + h + 10);
 
         return (
-          <g key={`p-${i}`}>
+          <g key={`p-${i}`} clipPath="url(#plot-clip)">
             <rect x={bx} y={y} width={singleW} height={h} fill={step.fill} rx={2} />
 
             {step.isTotal ? (
-              /* Total label: above the bar */
+              /* Total label: above the bar, clamped to top margin */
               <text
                 x={cx}
-                y={y - 5}
+                y={totalLabelY}
                 textAnchor="middle"
                 dominantBaseline="auto"
                 fontSize={9}
@@ -223,10 +233,10 @@ function WaterfallSVG({
                 {formatCurrency(step.displayValue)}
               </text>
             ) : (
-              /* Incremental label: below the floating bar (in the blank space) */
+              /* Incremental label: below the floating bar, clamped to bottom margin */
               <text
                 x={cx}
-                y={y + h + 10}
+                y={deltaLabelY}
                 textAnchor="middle"
                 dominantBaseline="auto"
                 fontSize={9}
@@ -257,36 +267,37 @@ function WaterfallSVG({
           );
         })}
 
-      {/* X axis step labels */}
+      {/* X axis step labels — rotated -45° to prevent overlap with 11 steps */}
       {primary.map((step, i) => {
         const cx = groupCenterX(i);
-        const labelY = CHART_HEIGHT - M_BOTTOM + 14;
+        const labelY = CHART_HEIGHT - M_BOTTOM + 8;
         return (
-          <g key={`xlabel-${i}`}>
-            {step.lines.map((line, li) => (
-              <text
-                key={li}
-                x={cx}
-                y={labelY + li * 11}
-                textAnchor="middle"
-                fontSize={9}
-                fill={step.isTotal ? '#334155' : '#64748b'}
-                fontWeight={step.isTotal ? '600' : '400'}
-              >
-                {line}
-              </text>
-            ))}
-          </g>
+          <text
+            key={`xlabel-${i}`}
+            x={cx}
+            y={labelY}
+            textAnchor="end"
+            fontSize={9}
+            fill={step.isTotal ? '#334155' : '#64748b'}
+            fontWeight={step.isTotal ? '600' : '400'}
+            transform={`rotate(-45, ${cx}, ${labelY})`}
+          >
+            {step.name}
+          </text>
         );
       })}
 
-      {/* Legend */}
+      {/* Legend — names truncated to 18 chars to prevent overflow */}
       {hasCompare && (
         <g>
           <rect x={M_LEFT} y={CHART_HEIGHT - 14} width={10} height={8} fill="#131568" rx={1} />
-          <text x={M_LEFT + 13} y={CHART_HEIGHT - 7} fontSize={9} fill="#334155">{primaryName}</text>
-          <rect x={M_LEFT + 100} y={CHART_HEIGHT - 14} width={10} height={8} fill="#131568" rx={1} opacity={0.45} />
-          <text x={M_LEFT + 113} y={CHART_HEIGHT - 7} fontSize={9} fill="#334155">{compareName}</text>
+          <text x={M_LEFT + 13} y={CHART_HEIGHT - 7} fontSize={9} fill="#334155">
+            {primaryName.length > 18 ? primaryName.slice(0, 16) + '…' : primaryName}
+          </text>
+          <rect x={M_LEFT + 130} y={CHART_HEIGHT - 14} width={10} height={8} fill="#131568" rx={1} opacity={0.45} />
+          <text x={M_LEFT + 143} y={CHART_HEIGHT - 7} fontSize={9} fill="#334155">
+            {(compareName ?? '').length > 18 ? (compareName ?? '').slice(0, 16) + '…' : (compareName ?? '')}
+          </text>
         </g>
       )}
     </svg>

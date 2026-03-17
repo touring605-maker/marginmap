@@ -72,7 +72,8 @@ export function ChannelMixChart({ results }: Props) {
             tick={{ fontSize: 11, fill: '#334155', fontWeight: 500 }}
             axisLine={false}
             tickLine={false}
-            width={100}
+            width={120}
+            tickFormatter={(v: string) => v.length > 15 ? v.slice(0, 13) + '…' : v}
           />
           <RechartsTooltip
             formatter={(value: number) => [`${value.toFixed(1)}%`]}
