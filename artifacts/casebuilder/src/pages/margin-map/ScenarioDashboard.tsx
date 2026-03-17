@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Lock, Unlock, Eye, EyeOff, HelpCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Lock, Unlock, Eye, EyeOff, HelpCircle, X, Check } from 'lucide-react';
 import { useMarginMap } from './MarginMapContext';
 import { ScenarioEditor } from './ScenarioEditor';
+import { BaselineEditor } from './BaselineEditor';
 import {
   computeAllScenarios,
   formatCurrency,
@@ -161,6 +162,10 @@ export function ScenarioDashboard() {
           </button>
         </div>
       </div>
+
+      {editingBaseline && (
+        <BaselineEditor onClose={() => setEditingBaseline(false)} />
+      )}
 
       {allNonBaseline.length > 3 && (
         <div className="bg-slate-50 border border-border rounded-lg p-3">

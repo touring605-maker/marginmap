@@ -51,8 +51,6 @@ export interface ScenarioDriverOverrides {
   returnProcessingCostPerUnit?: number;
   totalSharedCostPool?: number;
   sharedCostBehavior?: SharedCostBehavior;
-  stepFixedThresholdVolume?: number;
-  stepFixedIncrease?: number;
 }
 
 export interface Scenario {
@@ -130,8 +128,6 @@ function resolveDrivers(baseline: BaselineData, overrides: ScenarioDriverOverrid
   if (overrides.returnProcessingCostPerUnit !== undefined) resolved.returnProcessingCostPerUnit = overrides.returnProcessingCostPerUnit;
   if (overrides.totalSharedCostPool !== undefined) resolved.totalSharedCostPool = overrides.totalSharedCostPool;
   if (overrides.sharedCostBehavior !== undefined) resolved.sharedCostBehavior = overrides.sharedCostBehavior;
-  if (overrides.stepFixedThresholdVolume !== undefined) resolved.stepFixedThresholdVolume = overrides.stepFixedThresholdVolume;
-  if (overrides.stepFixedIncrease !== undefined) resolved.stepFixedIncrease = overrides.stepFixedIncrease;
 
   if (overrides.channelMixShift) {
     const { from, to, pct } = overrides.channelMixShift;
@@ -168,8 +164,7 @@ function computeChannelMetrics(channel: Channel, d: BaselineData): ChannelMetric
       const fulfillmentCost = volume * d.dtcFulfillmentCostPerUnit;
       const returnProcessingCost = returnedUnits * d.returnProcessingCostPerUnit;
       const acquisitionCost = volume * d.dtcCAC;
-      const platformFees = grossRevenue * d.dropshipMarketplaceFeeRate;
-      channelVariableCosts = fulfillmentCost + returnProcessingCost + acquisitionCost + platformFees;
+      channelVariableCosts = fulfillmentCost + returnProcessingCost + acquisitionCost;
       break;
     }
     case 'dropship': {
@@ -177,7 +172,8 @@ function computeChannelMetrics(channel: Channel, d: BaselineData): ChannelMetric
       grossRevenue = volume * d.dropshipServiceFeeRate * d.dtcASP;
       netRevenue = grossRevenue;
       const fulfillmentCost = volume * d.dropshipFulfillmentCostPerOrder;
-      channelVariableCosts = fulfillmentCost;
+      const platformFees = grossRevenue * d.dropshipMarketplaceFeeRate;
+      channelVariableCosts = fulfillmentCost + platformFees;
       break;
     }
   }

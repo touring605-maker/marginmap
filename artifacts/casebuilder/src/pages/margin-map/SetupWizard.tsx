@@ -171,7 +171,7 @@ export function SetupWizard() {
 
         {step === 2 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label={DRIVER_LABELS.cogsPerUnit} tooltip={JARGON_TOOLTIPS['COGS']} value={data.cogsPerUnit} onChange={(v) => update('cogsPerUnit', v)} prefix="$" step={0.01} locked />
+            <Field label={DRIVER_LABELS.cogsPerUnit} tooltip={JARGON_TOOLTIPS['COGS']} value={data.cogsPerUnit} onChange={(v) => update('cogsPerUnit', v)} prefix="$" step={0.01} />
             <Field label={DRIVER_LABELS.dtcFulfillmentCostPerUnit} value={data.dtcFulfillmentCostPerUnit} onChange={(v) => update('dtcFulfillmentCostPerUnit', v)} prefix="$" step={0.01} />
             <Field label={DRIVER_LABELS.dropshipFulfillmentCostPerOrder} value={data.dropshipFulfillmentCostPerOrder} onChange={(v) => update('dropshipFulfillmentCostPerOrder', v)} prefix="$" step={0.01} />
             <Field label={DRIVER_LABELS.dtcCAC} tooltip={JARGON_TOOLTIPS['CAC']} value={data.dtcCAC} onChange={(v) => update('dtcCAC', v)} prefix="$" step={0.01} />
