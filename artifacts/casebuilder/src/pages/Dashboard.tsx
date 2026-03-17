@@ -39,34 +39,34 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-border shadow-sm">
-          <div className="flex justify-between items-start">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-border shadow-sm flex flex-col">
+          <div className="flex justify-between items-start min-h-[2.5rem]">
             <p className="text-sm font-medium text-muted-foreground">Total Cases</p>
-            <Briefcase className="w-5 h-5 text-indigo-500" />
+            <Briefcase className="w-5 h-5 text-indigo-500 shrink-0" />
           </div>
           <p className="text-3xl font-display font-bold mt-2">{totalCases}</p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-border shadow-sm">
-          <div className="flex justify-between items-start">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-border shadow-sm flex flex-col">
+          <div className="flex justify-between items-start min-h-[2.5rem]">
             <p className="text-sm font-medium text-muted-foreground">Active (Draft/Review)</p>
-            <AlertCircle className="w-5 h-5 text-amber-500" />
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
           </div>
           <p className="text-3xl font-display font-bold mt-2">{activeCases}</p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-border shadow-sm">
-          <div className="flex justify-between items-start">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-border shadow-sm flex flex-col">
+          <div className="flex justify-between items-start min-h-[2.5rem]">
             <p className="text-sm font-medium text-muted-foreground">Total Investment</p>
-            <DollarSign className="w-5 h-5 text-rose-500" />
+            <DollarSign className="w-5 h-5 text-rose-500 shrink-0" />
           </div>
           <p className="text-3xl font-display font-bold mt-2">{formatCurrency(totalInvestment)}</p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-border shadow-sm">
-          <div className="flex justify-between items-start">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-border shadow-sm flex flex-col">
+          <div className="flex justify-between items-start min-h-[2.5rem]">
             <p className="text-sm font-medium text-muted-foreground">Expected Value (Annual)</p>
-            <TrendingUp className="w-5 h-5 text-emerald-500" />
+            <TrendingUp className="w-5 h-5 text-emerald-500 shrink-0" />
           </div>
           <p className="text-3xl font-display font-bold mt-2">{formatCurrency(totalExpectedValue)}</p>
         </motion.div>
