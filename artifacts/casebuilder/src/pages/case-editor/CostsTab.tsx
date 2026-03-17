@@ -70,6 +70,12 @@ function annualizeAmount(amount: number, frequency: string): number {
   return 0;
 }
 
+const PHASE_ALLOWED_TYPES: Record<CostPhase, CostType[]> = {
+  current_state: ["opex", "capex", "escalating"],
+  future_state: ["opex", "capex", "escalating"],
+  project_cost: ["one_time", "capex", "opex", "escalating", "transition"],
+};
+
 function CostForm({
   data,
   onChange,
@@ -77,6 +83,7 @@ function CostForm({
   onCancel,
   isPending,
   submitLabel,
+  phase,
 }: {
   data: CostFormData;
   onChange: (d: CostFormData) => void;
@@ -84,7 +91,9 @@ function CostForm({
   onCancel: () => void;
   isPending: boolean;
   submitLabel: string;
+  phase: CostPhase;
 }) {
+  const allowedTypes = PHASE_ALLOWED_TYPES[phase];
   return (
     <form
       onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
@@ -110,7 +119,7 @@ function CostForm({
             }}
             className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
           >
-            {COST_TYPES.map((t) => (
+            {COST_TYPES.filter(t => allowedTypes.includes(t.value)).map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
@@ -324,6 +333,7 @@ function PhaseSection({
                 onCancel={() => { setIsAdding(false); setFormData({ ...emptyForm }); }}
                 isPending={createMutation.isPending}
                 submitLabel="Save Item"
+                phase={phase}
               />
             </div>
           )}
@@ -356,6 +366,7 @@ function PhaseSection({
                           onCancel={() => setEditingId(null)}
                           isPending={updateMutation.isPending}
                           submitLabel="Update"
+                          phase={phase}
                         />
                       </td>
                     </tr>

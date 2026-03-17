@@ -410,7 +410,7 @@ router.patch("/cases/:id/costs/:costId", async (req: Request, res: Response): Pr
     res.status(404).json({ error: "Cost line item not found" });
     return;
   }
-  await syncCostDeltaValueDriver(params.data.id);
+  await syncCostDeltaValueDriver(params.data.id, item.scenarioId);
   res.json(UpdateCostLineItemResponse.parse(item));
 });
 
@@ -428,10 +428,13 @@ router.delete("/cases/:id/costs/:costId", async (req: Request, res: Response): P
     res.status(404).json({ error: "Business case not found" });
     return;
   }
+  const [deletedCost] = await db.select().from(costLineItemsTable).where(
+    and(eq(costLineItemsTable.id, params.data.costId), eq(costLineItemsTable.businessCaseId, params.data.id))
+  );
   await db.delete(costLineItemsTable).where(
     and(eq(costLineItemsTable.id, params.data.costId), eq(costLineItemsTable.businessCaseId, params.data.id))
   );
-  await syncCostDeltaValueDriver(params.data.id);
+  await syncCostDeltaValueDriver(params.data.id, deletedCost?.scenarioId);
   res.sendStatus(204);
 });
 
@@ -460,6 +463,8 @@ router.get("/cases/:id/values", async (req: Request, res: Response): Promise<voi
     res.status(400).json({ error: "Scenario does not belong to this business case" });
     return;
   }
+
+  await syncCostDeltaValueDriver(params.data.id, scenarioId);
 
   let conditions = [eq(valueDriversTable.businessCaseId, params.data.id)];
   if (scenarioId) {
@@ -518,13 +523,20 @@ router.patch("/cases/:id/values/:valueId", async (req: Request, res: Response): 
     res.status(400).json({ error: body.error.message });
     return;
   }
-  const [item] = await db.update(valueDriversTable).set(body.data).where(
+  const [existingDriver] = await db.select().from(valueDriversTable).where(
     and(eq(valueDriversTable.id, params.data.valueId), eq(valueDriversTable.businessCaseId, params.data.id))
-  ).returning();
-  if (!item) {
+  );
+  if (!existingDriver) {
     res.status(404).json({ error: "Value driver not found" });
     return;
   }
+  if (existingDriver.isAutoCalculated) {
+    res.status(400).json({ error: "Cannot edit auto-calculated value drivers" });
+    return;
+  }
+  const [item] = await db.update(valueDriversTable).set(body.data).where(
+    and(eq(valueDriversTable.id, params.data.valueId), eq(valueDriversTable.businessCaseId, params.data.id))
+  ).returning();
   res.json(UpdateValueDriverResponse.parse(item));
 });
 
