@@ -8,9 +8,35 @@ import {
   getListValueDriversQueryKey,
   getGetFinancialModelQueryKey,
 } from "@workspace/api-client-react";
-import { Loader2, Plus, Trash2, Pencil, FileText, Building2, ChevronDown, ChevronRight, X, Check, ArrowRight, Zap } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, FileText, Building2, X, Check, ArrowRight, Zap, Copy, Eye } from "lucide-react";
 
 const API_BASE = `${import.meta.env.VITE_API_URL || ""}/api`;
+
+interface TemplateCostItem {
+  name: string;
+  type: string;
+  costPhase?: string;
+  amount: number;
+  frequency?: string;
+}
+
+interface TemplateValueDriver {
+  name: string;
+  type: string;
+  annualValue: number;
+  confidenceLevel?: string;
+  description?: string;
+  monthsToRealize?: number;
+}
+
+interface ExtraCostItem {
+  name: string;
+  amount: string;
+  type: string;
+  costPhase: string;
+}
+
+const EMPTY_EXTRA: ExtraCostItem = { name: "", amount: "", type: "opex", costPhase: "project_cost" };
 
 function useUserTemplates() {
   return useQuery({
@@ -92,69 +118,278 @@ function useApplyUserTemplate() {
   });
 }
 
+function TemplateDetailSlideOver({
+  name,
+  description,
+  industry,
+  costItems,
+  valueDrivers,
+  onClose,
+  actions,
+}: {
+  name: string;
+  description?: string | null;
+  industry?: string | null;
+  costItems: TemplateCostItem[];
+  valueDrivers: TemplateValueDriver[];
+  onClose: () => void;
+  actions: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl h-full overflow-y-auto animate-in slide-in-from-right duration-200">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border px-6 py-4 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-lg font-bold text-foreground">{name}</h2>
+            {industry && <p className="text-xs text-muted-foreground">{industry}</p>}
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Cost Items ({costItems.length})
+            </p>
+            {costItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No cost items in this template.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {costItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm px-3 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                    <div>
+                      <span className="text-foreground font-medium">{item.name}</span>
+                      <span className="ml-2 text-[10px] text-muted-foreground capitalize">
+                        {item.costPhase?.replace("_", " ") || "project"} &middot; {item.type}
+                      </span>
+                    </div>
+                    <span className="font-mono text-sm">${item.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {valueDrivers.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Value Drivers ({valueDrivers.length})
+              </p>
+              <div className="space-y-1.5">
+                {valueDrivers.map((v, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm px-3 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                    <div>
+                      <span className="text-foreground font-medium">{v.name}</span>
+                      <span className="ml-2 text-[10px] text-muted-foreground capitalize">{v.type?.replace("_", " ")}</span>
+                    </div>
+                    <span className="font-mono text-sm text-emerald-600 dark:text-emerald-400">
+                      ${v.annualValue.toLocaleString()}/yr
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-4 border-t border-border flex items-center gap-2">
+            {actions}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ApplyToCaseDialog({
   onApply,
   onClose,
   isPending,
   templateName,
+  templateCostItems,
+  templateValueDrivers,
 }: {
-  onApply: (caseId: number) => void;
+  onApply: (caseId: number, extraCost: ExtraCostItem | null) => void;
   onClose: () => void;
   isPending: boolean;
   templateName: string;
+  templateCostItems: TemplateCostItem[];
+  templateValueDrivers: TemplateValueDriver[];
 }) {
   const { data: cases, isLoading } = useListBusinessCases();
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
+  const [step, setStep] = useState<"select" | "confirm">("select");
+  const [addExtraCost, setAddExtraCost] = useState(false);
+  const [extraCost, setExtraCost] = useState<ExtraCostItem>({ ...EMPTY_EXTRA });
+
+  const handleContinue = () => {
+    if (!selectedCaseId) return;
+    setStep("confirm");
+  };
+
+  const handleApply = () => {
+    if (!selectedCaseId) return;
+    const extra = addExtraCost && extraCost.name.trim() && Number(extraCost.amount) > 0 ? extraCost : null;
+    onApply(selectedCaseId, extra);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-foreground">Apply Template</h3>
+          <h3 className="text-lg font-bold text-foreground">
+            {step === "select" ? "Select Business Case" : "Review & Apply"}
+          </h3>
           <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Apply <span className="font-semibold text-foreground">{templateName}</span> to a business case. This will add cost items and value drivers from the template.
-        </p>
 
-        {isLoading ? (
-          <div className="py-4 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" /></div>
-        ) : !cases || cases.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">No business cases found. Create one first.</p>
-        ) : (
-          <div className="space-y-1 max-h-60 overflow-y-auto">
-            {cases.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedCaseId(c.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors text-sm ${
-                  selectedCaseId === c.id
-                    ? "bg-primary/10 border border-primary/30 text-foreground font-medium"
-                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-foreground border border-transparent"
-                }`}
-              >
-                <p className="font-medium">{c.name}</p>
-                {c.industry && <p className="text-xs text-muted-foreground">{c.industry}</p>}
+        {step === "select" && (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Choose a business case to apply <span className="font-semibold text-foreground">{templateName}</span> to.
+            </p>
+            {isLoading ? (
+              <div className="py-4 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" /></div>
+            ) : !cases || cases.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No business cases found. Create one first.</p>
+            ) : (
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {cases.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCaseId(c.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                      selectedCaseId === c.id
+                        ? "bg-primary/10 border border-primary/30 text-foreground font-medium"
+                        : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-foreground border border-transparent"
+                    }`}
+                  >
+                    <p className="font-medium">{c.name}</p>
+                    {c.industry && <p className="text-xs text-muted-foreground">{c.industry}</p>}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={onClose} className="px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                Cancel
               </button>
-            ))}
-          </div>
+              <button
+                onClick={handleContinue}
+                disabled={!selectedCaseId}
+                className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+              >
+                Continue <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-            Cancel
-          </button>
-          <button
-            onClick={() => selectedCaseId && onApply(selectedCaseId)}
-            disabled={!selectedCaseId || isPending}
-            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
-          >
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            Apply Template
-          </button>
-        </div>
+        {step === "confirm" && (
+          <>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>This will add the following items to your case:</p>
+              <ul className="list-disc list-inside text-xs space-y-0.5 mt-2">
+                <li>{templateCostItems.length} cost item{templateCostItems.length !== 1 ? "s" : ""}</li>
+                <li>{templateValueDrivers.length} value driver{templateValueDrivers.length !== 1 ? "s" : ""}</li>
+              </ul>
+            </div>
+
+            <div className="border border-border rounded-xl overflow-hidden">
+              <button
+                onClick={() => { setAddExtraCost(!addExtraCost); setExtraCost({ ...EMPTY_EXTRA }); }}
+                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-primary" />
+                  Add an extra cost item
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${addExtraCost ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800 text-muted-foreground"}`}>
+                  {addExtraCost ? "On" : "Optional"}
+                </span>
+              </button>
+              {addExtraCost && (
+                <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={extraCost.name}
+                        onChange={(e) => setExtraCost({ ...extraCost, name: e.target.value })}
+                        placeholder="e.g., Implementation Fee"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Amount ($)</label>
+                      <input
+                        type="number"
+                        value={extraCost.amount}
+                        onChange={(e) => setExtraCost({ ...extraCost, amount: e.target.value })}
+                        placeholder="0"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Type</label>
+                      <select
+                        value={extraCost.type}
+                        onChange={(e) => setExtraCost({ ...extraCost, type: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                      >
+                        <option value="opex">OpEx</option>
+                        <option value="capex">CapEx</option>
+                        <option value="one_time">One-Time</option>
+                        <option value="escalating">Escalating</option>
+                        <option value="transition">Transition</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Phase</label>
+                      <select
+                        value={extraCost.costPhase}
+                        onChange={(e) => setExtraCost({ ...extraCost, costPhase: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                      >
+                        <option value="project_cost">Project Cost</option>
+                        <option value="current_state">Current State</option>
+                        <option value="future_state">Future State</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between gap-2 pt-2">
+              <button onClick={() => setStep("select")} className="px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                Back
+              </button>
+              <div className="flex gap-2">
+                <button onClick={onClose} className="px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApply}
+                  disabled={isPending}
+                  className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  Apply Template
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -162,20 +397,35 @@ function ApplyToCaseDialog({
 
 function IndustryTemplatesSection() {
   const { data: templates, isLoading } = useListIndustryTemplates();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [applyingTemplate, setApplyingTemplate] = useState<{ id: string; name: string } | null>(null);
+  const [viewingTemplate, setViewingTemplate] = useState<string | null>(null);
+  const [applyingTemplate, setApplyingTemplate] = useState<{ id: string; name: string; costItems: TemplateCostItem[]; valueDrivers: TemplateValueDriver[] } | null>(null);
   const applyMutation = useApplyIndustryTemplate();
+  const createUserTemplate = useCreateUserTemplate();
   const queryClient = useQueryClient();
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleApply = (caseId: number) => {
+  const handleApply = (caseId: number, extraCost: ExtraCostItem | null) => {
     if (!applyingTemplate) return;
     applyMutation.mutate(
       { id: caseId, data: { templateId: applyingTemplate.id } },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
+          if (extraCost) {
+            await fetch(`${API_BASE}/cases/${caseId}/costs`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                name: extraCost.name,
+                type: extraCost.type,
+                amount: Number(extraCost.amount),
+                frequency: extraCost.type === "one_time" || extraCost.type === "transition" ? "once" : "annually",
+                costPhase: extraCost.costPhase,
+              }),
+            });
+          }
           setApplyingTemplate(null);
-          setSuccessMsg(`Template applied successfully!`);
+          setSuccessMsg("Template applied successfully!");
           queryClient.invalidateQueries({ queryKey: getListCostLineItemsQueryKey(caseId) });
           queryClient.invalidateQueries({ queryKey: getListValueDriversQueryKey(caseId) });
           queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(caseId) });
@@ -185,7 +435,28 @@ function IndustryTemplatesSection() {
     );
   };
 
+  const handleDuplicate = (t: { name: string; industry: string; description?: string; costItems: TemplateCostItem[]; valueDrivers?: TemplateValueDriver[] }) => {
+    createUserTemplate.mutate(
+      {
+        name: `${t.name} (Copy)`,
+        industry: t.industry,
+        description: t.description,
+        costItems: t.costItems,
+        valueDrivers: t.valueDrivers || [],
+      },
+      {
+        onSuccess: () => {
+          setSuccessMsg("Industry template duplicated to My Templates!");
+          setViewingTemplate(null);
+          setTimeout(() => setSuccessMsg(null), 3000);
+        },
+      }
+    );
+  };
+
   if (isLoading) return <div className="p-6 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" /></div>;
+
+  const viewedTemplate = templates?.find((t) => t.id === viewingTemplate);
 
   return (
     <div className="space-y-3">
@@ -195,7 +466,7 @@ function IndustryTemplatesSection() {
         <span className="text-xs text-muted-foreground">({templates?.length || 0})</span>
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        Pre-built templates for common industries. Apply these to any business case.
+        Pre-built templates for common industries. View details, apply to a case, or duplicate as your own template.
       </p>
 
       {successMsg && (
@@ -206,74 +477,85 @@ function IndustryTemplatesSection() {
       )}
 
       <div className="space-y-2">
-        {templates?.map((t) => {
-          const isExpanded = expandedId === t.id;
-          return (
-            <div key={t.id} className="border border-border rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <button
-                onClick={() => setExpandedId(isExpanded ? null : t.id)}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.industry}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{t.costItems.length} costs</span>
-                  {t.valueDrivers && <span>{t.valueDrivers.length} drivers</span>}
-                </div>
-              </button>
-              {isExpanded && (
-                <div className="px-4 pb-4 border-t border-border">
-                  {t.description && (
-                    <p className="text-xs text-muted-foreground py-2">{t.description}</p>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <div>
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Cost Items</p>
-                      <div className="space-y-1">
-                        {t.costItems.map((item, i) => (
-                          <div key={i} className="flex items-center justify-between text-xs px-2 py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded">
-                            <span className="text-foreground">{item.name}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground capitalize">{item.costPhase?.replace("_", " ") || "project"}</span>
-                              <span className="font-mono">${item.amount.toLocaleString()}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    {t.valueDrivers && t.valueDrivers.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Value Drivers</p>
-                        <div className="space-y-1">
-                          {t.valueDrivers.map((v, i) => (
-                            <div key={i} className="flex items-center justify-between text-xs px-2 py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded">
-                              <span className="text-foreground">{v.name}</span>
-                              <span className="font-mono text-emerald-600 dark:text-emerald-400">${v.annualValue.toLocaleString()}/yr</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      onClick={() => setApplyingTemplate({ id: t.id, name: t.name })}
-                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                      <ArrowRight className="w-3 h-3" /> Apply to Case
-                    </button>
-                  </div>
-                </div>
-              )}
+        {templates?.map((t) => (
+          <div key={t.id} className="border border-border rounded-xl bg-white dark:bg-slate-900 flex items-center justify-between px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">{t.name}</p>
+              <p className="text-xs text-muted-foreground">{t.industry}</p>
+              <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                <span>{t.costItems.length} costs</span>
+                {t.valueDrivers && <span>{t.valueDrivers.length} drivers</span>}
+              </div>
             </div>
-          );
-        })}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setViewingTemplate(t.id)}
+                className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                title="View details"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleDuplicate(t)}
+                disabled={createUserTemplate.isPending}
+                className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                title="Duplicate to My Templates"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setApplyingTemplate({
+                  id: t.id,
+                  name: t.name,
+                  costItems: t.costItems as TemplateCostItem[],
+                  valueDrivers: (t.valueDrivers || []) as TemplateValueDriver[],
+                })}
+                className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                title="Apply to case"
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {viewedTemplate && (
+        <TemplateDetailSlideOver
+          name={viewedTemplate.name}
+          description={viewedTemplate.description}
+          industry={viewedTemplate.industry}
+          costItems={viewedTemplate.costItems as TemplateCostItem[]}
+          valueDrivers={(viewedTemplate.valueDrivers || []) as TemplateValueDriver[]}
+          onClose={() => setViewingTemplate(null)}
+          actions={
+            <>
+              <button
+                onClick={() => handleDuplicate(viewedTemplate as { name: string; industry: string; description?: string; costItems: TemplateCostItem[]; valueDrivers?: TemplateValueDriver[] })}
+                disabled={createUserTemplate.isPending}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                {createUserTemplate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                Duplicate to My Templates
+              </button>
+              <button
+                onClick={() => {
+                  setViewingTemplate(null);
+                  setApplyingTemplate({
+                    id: viewedTemplate.id,
+                    name: viewedTemplate.name,
+                    costItems: viewedTemplate.costItems as TemplateCostItem[],
+                    valueDrivers: (viewedTemplate.valueDrivers || []) as TemplateValueDriver[],
+                  });
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                <ArrowRight className="w-4 h-4" /> Apply to Case
+              </button>
+            </>
+          }
+        />
+      )}
 
       {applyingTemplate && (
         <ApplyToCaseDialog
@@ -281,6 +563,8 @@ function IndustryTemplatesSection() {
           onClose={() => setApplyingTemplate(null)}
           isPending={applyMutation.isPending}
           templateName={applyingTemplate.name}
+          templateCostItems={applyingTemplate.costItems}
+          templateValueDrivers={applyingTemplate.valueDrivers}
         />
       )}
     </div>
@@ -293,13 +577,15 @@ function UserTemplatesSection() {
   const deleteMutation = useDeleteUserTemplate();
   const updateMutation = useUpdateUserTemplate();
   const applyMutation = useApplyUserTemplate();
+  const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [applyingTemplate, setApplyingTemplate] = useState<{ id: number; name: string } | null>(null);
+  const [viewingTemplate, setViewingTemplate] = useState<number | null>(null);
+  const [applyingTemplate, setApplyingTemplate] = useState<{ id: number; name: string; costItems: TemplateCostItem[]; valueDrivers: TemplateValueDriver[] } | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const handleCreate = () => {
@@ -330,14 +616,31 @@ function UserTemplatesSection() {
     );
   };
 
-  const handleApply = (caseId: number) => {
+  const handleApply = (caseId: number, extraCost: ExtraCostItem | null) => {
     if (!applyingTemplate) return;
     applyMutation.mutate(
       { caseId, templateId: applyingTemplate.id },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
+          if (extraCost) {
+            await fetch(`${API_BASE}/cases/${caseId}/costs`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                name: extraCost.name,
+                type: extraCost.type,
+                amount: Number(extraCost.amount),
+                frequency: extraCost.type === "one_time" || extraCost.type === "transition" ? "once" : "annually",
+                costPhase: extraCost.costPhase,
+              }),
+            });
+          }
           setApplyingTemplate(null);
-          setSuccessMsg(`Template applied successfully!`);
+          setSuccessMsg("Template applied successfully!");
+          queryClient.invalidateQueries({ queryKey: getListCostLineItemsQueryKey(caseId) });
+          queryClient.invalidateQueries({ queryKey: getListValueDriversQueryKey(caseId) });
+          queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(caseId) });
           setTimeout(() => setSuccessMsg(null), 3000);
         },
       }
@@ -351,10 +654,12 @@ function UserTemplatesSection() {
     name: string;
     description?: string | null;
     industry?: string | null;
-    costItems: unknown[];
-    valueDrivers: unknown[];
+    costItems: TemplateCostItem[];
+    valueDrivers: TemplateValueDriver[];
     createdAt?: string;
   }>;
+
+  const viewedTemplate = templatesList.find((t) => t.id === viewingTemplate);
 
   return (
     <div className="space-y-3">
@@ -372,7 +677,7 @@ function UserTemplatesSection() {
         </button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Create custom templates to reuse across business cases. Save cost items and value drivers for quick setup.
+        Create custom templates to reuse across business cases, or duplicate industry templates here to customize them.
       </p>
 
       {successMsg && (
@@ -422,7 +727,7 @@ function UserTemplatesSection() {
       <div className="space-y-2">
         {templatesList.length === 0 && !isCreating ? (
           <div className="text-center py-8 text-sm text-muted-foreground border border-dashed border-border rounded-xl">
-            No custom templates yet. Click "New Template" to create one.
+            No custom templates yet. Click "New Template" to create one, or duplicate an industry template below.
           </div>
         ) : (
           templatesList.map((t) => (
@@ -463,7 +768,19 @@ function UserTemplatesSection() {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setApplyingTemplate({ id: t.id, name: t.name })}
+                      onClick={() => setViewingTemplate(t.id)}
+                      className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      title="View details"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setApplyingTemplate({
+                        id: t.id,
+                        name: t.name,
+                        costItems: t.costItems || [],
+                        valueDrivers: t.valueDrivers || [],
+                      })}
                       className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                       title="Apply to case"
                     >
@@ -472,6 +789,7 @@ function UserTemplatesSection() {
                     <button
                       onClick={() => startEdit(t)}
                       className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      title="Edit"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
@@ -479,6 +797,7 @@ function UserTemplatesSection() {
                       onClick={() => deleteMutation.mutate(t.id)}
                       disabled={deleteMutation.isPending}
                       className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                      title="Delete"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -490,12 +809,43 @@ function UserTemplatesSection() {
         )}
       </div>
 
+      {viewedTemplate && (
+        <TemplateDetailSlideOver
+          name={viewedTemplate.name}
+          description={viewedTemplate.description}
+          industry={viewedTemplate.industry}
+          costItems={viewedTemplate.costItems || []}
+          valueDrivers={viewedTemplate.valueDrivers || []}
+          onClose={() => setViewingTemplate(null)}
+          actions={
+            <>
+              <button
+                onClick={() => {
+                  setViewingTemplate(null);
+                  setApplyingTemplate({
+                    id: viewedTemplate.id,
+                    name: viewedTemplate.name,
+                    costItems: viewedTemplate.costItems || [],
+                    valueDrivers: viewedTemplate.valueDrivers || [],
+                  });
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                <ArrowRight className="w-4 h-4" /> Apply to Case
+              </button>
+            </>
+          }
+        />
+      )}
+
       {applyingTemplate && (
         <ApplyToCaseDialog
           onApply={handleApply}
           onClose={() => setApplyingTemplate(null)}
           isPending={applyMutation.isPending}
           templateName={applyingTemplate.name}
+          templateCostItems={applyingTemplate.costItems}
+          templateValueDrivers={applyingTemplate.valueDrivers}
         />
       )}
     </div>
