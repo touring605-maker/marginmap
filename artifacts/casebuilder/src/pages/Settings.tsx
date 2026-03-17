@@ -1160,8 +1160,37 @@ function CompanyForm({
     description: initial?.description || "",
     fiscalYearEnd: initial?.fiscalYearEnd || "",
   });
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const parentCandidates = companies.filter((c) => !initial?.id || c.id !== initial.id);
+
+  const handleLogoFileChange = async (e: { target: HTMLInputElement }) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await fetch(`${API_BASE}/companies/logo-upload`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed");
+      }
+      const { logoUrl } = await res.json();
+      setForm((prev) => ({ ...prev, logoUrl }));
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  };
 
   return (
     <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border">
@@ -1211,14 +1240,32 @@ function CompanyForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1">Logo URL</label>
-          <input
-            type="text"
-            value={form.logoUrl}
-            onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-            placeholder="https://..."
-            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
-          />
+          <label className="block text-xs font-semibold mb-1">Company Logo</label>
+          <div className="flex items-center gap-3">
+            {form.logoUrl ? (
+              <div className="relative shrink-0">
+                <img src={form.logoUrl} alt="Logo preview" className="w-10 h-10 rounded object-contain border border-border bg-white" />
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, logoUrl: "" }))}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center"
+                  title="Remove logo"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded border border-dashed border-border bg-white dark:bg-slate-900 flex items-center justify-center shrink-0">
+                <Building2 className="w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
+            <label className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-white dark:bg-slate-900 text-xs font-medium cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isUploading ? "opacity-50 pointer-events-none" : ""}`}>
+              {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              {isUploading ? "Uploading..." : form.logoUrl ? "Change" : "Upload image"}
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoFileChange} disabled={isUploading} />
+            </label>
+          </div>
+          {uploadError && <p className="mt-1 text-xs text-destructive">{uploadError}</p>}
         </div>
         <div>
           <label className="block text-xs font-semibold mb-1">Fiscal Year End</label>

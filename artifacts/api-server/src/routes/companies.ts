@@ -3,8 +3,32 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db, companiesTable, channelsTable, channelCompaniesTable } from "@workspace/db";
 import { getOrCreateOrg } from "./organizations";
 import { z } from "zod";
+import multer from "multer";
+import { ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
+const objectStorageService = new ObjectStorageService();
+
+const ALLOWED_IMAGE_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+]);
+const MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024;
+
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_LOGO_SIZE_BYTES },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_IMAGE_MIME_TYPES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
+});
 
 const CreateCompanyBody = z.object({
   name: z.string().min(1),
@@ -269,6 +293,39 @@ router.post("/channels/reorder", async (req: Request, res: Response): Promise<vo
   );
 
   res.sendStatus(204);
+});
+
+router.post("/companies/logo-upload", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  await new Promise<void>((resolve) => {
+    logoUpload.single("logo")(req, res, (err: unknown) => {
+      if (err) {
+        if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+          res.status(400).json({ error: "File too large (max 5 MB)" });
+        } else if (err instanceof Error) {
+          res.status(400).json({ error: err.message });
+        } else {
+          res.status(400).json({ error: "Invalid file" });
+        }
+        resolve();
+        return;
+      }
+      resolve();
+    });
+  });
+
+  if (res.headersSent) return;
+  if (!req.file) { res.status(400).json({ error: "No image file provided" }); return; }
+
+  try {
+    const objectPath = await objectStorageService.uploadBuffer(req.file.buffer, req.file.mimetype);
+    const logoUrl = `/api/storage${objectPath}`;
+    res.status(201).json({ logoUrl });
+  } catch (err) {
+    console.error("Logo upload error:", err);
+    res.status(500).json({ error: "Failed to store logo" });
+  }
 });
 
 export default router;

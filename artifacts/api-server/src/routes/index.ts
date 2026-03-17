@@ -8,6 +8,7 @@ import canvasRouter from "./canvas";
 import exchangeRatesRouter from "./exchangeRates";
 import templatesRouter from "./templates";
 import companiesRouter from "./companies";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(canvasRouter);
 router.use(exchangeRatesRouter);
 router.use(templatesRouter);
 router.use(companiesRouter);
+router.use(storageRouter);
 
 export default router;
