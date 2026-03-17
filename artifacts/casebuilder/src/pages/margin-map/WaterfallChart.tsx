@@ -22,10 +22,12 @@ function buildWaterfallData(result: ScenarioResult, channel: Channel): Waterfall
   const ch = result.channels[channel];
   const dna = ch.allocatedDNA ?? 0;
   const cashSharedCosts = ch.allocatedSharedCosts - dna;
-  const hasDNA = dna > 0.01;
 
   type StepDef = { name: string; value: number; type: 'total' | 'negative' | 'positive' };
 
+  // EBITDA = Earnings Before D&A: subtract Cash Shared Costs first to reach EBITDA,
+  // then subtract D&A to reach Net Margin.
+  // Order: Contribution Margin → Cash Shared Costs → EBITDA → D&A → Net Margin
   const stepDefs: StepDef[] = [
     { name: 'Gross Revenue', value: ch.grossRevenue, type: 'total' },
     { name: 'Returns / Discounts', value: -(ch.grossRevenue - ch.netRevenue), type: 'negative' },
@@ -34,18 +36,10 @@ function buildWaterfallData(result: ScenarioResult, channel: Channel): Waterfall
     { name: 'Gross Margin', value: ch.grossMargin, type: 'total' },
     { name: 'Variable Costs', value: -ch.channelVariableCosts, type: 'negative' },
     { name: 'Contribution Margin', value: ch.contributionMargin, type: 'total' },
-    ...(hasDNA
-      ? ([
-          { name: 'Cash Shared Costs', value: -cashSharedCosts, type: 'negative' },
-          { name: 'EBITDA', value: ch.channelEBITDA, type: 'total' },
-          { name: 'D&A', value: -dna, type: 'negative' },
-          { name: 'Net Margin', value: ch.channelNetMargin, type: 'total' },
-        ] as StepDef[])
-      : ([
-          { name: 'Shared Costs', value: -ch.allocatedSharedCosts, type: 'negative' },
-          { name: 'EBITDA', value: ch.channelEBITDA, type: 'total' },
-          { name: 'Net Margin', value: ch.channelNetMargin, type: 'total' },
-        ] as StepDef[])),
+    { name: 'Cash Shared Costs', value: -cashSharedCosts, type: 'negative' },
+    { name: 'EBITDA', value: ch.channelEBITDA, type: 'total' },
+    { name: 'D&A', value: -dna, type: 'negative' },
+    { name: 'Net Margin', value: ch.channelNetMargin, type: 'total' },
   ];
 
   const data: WaterfallStep[] = [];
