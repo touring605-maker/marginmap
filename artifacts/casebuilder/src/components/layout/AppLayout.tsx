@@ -22,7 +22,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Business Cases", href: "/cases", icon: Briefcase },
-    { name: "Dependency Canvas", href: "/canvas", icon: Network },
+    { name: "Value Map", href: "/canvas", icon: Network },
   ];
 
   return (
