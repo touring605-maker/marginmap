@@ -5,6 +5,21 @@ import { Loader2, Save, Target, Trash2 } from "lucide-react";
 import type { BusinessCase } from "@workspace/api-client-react";
 import { UpdateBusinessCaseBodyStatus } from "@workspace/api-client-react";
 
+const INDUSTRIES = [
+  { id: "saas", label: "SaaS & Software" },
+  { id: "manufacturing", label: "Manufacturing" },
+  { id: "retail", label: "Retail" },
+  { id: "healthcare", label: "Healthcare" },
+  { id: "logistics", label: "Logistics & Freight" },
+  { id: "banking", label: "Commercial Banking" },
+  { id: "construction", label: "Construction" },
+  { id: "renewable_energy", label: "Renewable Energy" },
+  { id: "professional_services", label: "Professional Services" },
+  { id: "ecommerce", label: "E-Commerce" },
+  { id: "education", label: "Corporate Training" },
+  { id: "other", label: "Other" },
+];
+
 export function OverviewTab({ caseId, caseData }: { caseId: number; caseData: BusinessCase }) {
   const updateMutation = useUpdateCase();
   const { data: objectiveData } = useObjective(caseId);
@@ -101,11 +116,15 @@ export function OverviewTab({ caseId, caseData }: { caseId: number; caseData: Bu
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1.5">Industry</label>
-              <input
-                type="text" value={formData.industry}
+              <select
+                value={formData.industry}
                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-              />
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
+              >
+                {INDUSTRIES.map((i) => (
+                  <option key={i.id} value={i.id}>{i.label}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1.5">Currency</label>
