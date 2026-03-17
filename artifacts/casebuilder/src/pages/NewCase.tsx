@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Loader2, Save, Check, Factory, ShoppingBag, Code2, Heart, FileQuestion } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Save, Check, Factory, ShoppingBag, Code2, Heart, FileQuestion, Truck, Landmark, HardHat, Wind, Briefcase, ShoppingCart, GraduationCap } from "lucide-react";
 import { useCreateCase } from "@/hooks/use-cases";
 import { useApplyTemplate } from "@/hooks/use-scenarios";
 import { Link } from "wouter";
@@ -11,6 +11,13 @@ const INDUSTRIES = [
   { id: "manufacturing", label: "Manufacturing", icon: Factory, color: "bg-amber-500/10 border-amber-500/30 text-amber-600" },
   { id: "retail", label: "Retail", icon: ShoppingBag, color: "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" },
   { id: "healthcare", label: "Healthcare", icon: Heart, color: "bg-rose-500/10 border-rose-500/30 text-rose-600" },
+  { id: "logistics", label: "Logistics & Freight", icon: Truck, color: "bg-orange-500/10 border-orange-500/30 text-orange-600" },
+  { id: "banking", label: "Commercial Banking", icon: Landmark, color: "bg-indigo-500/10 border-indigo-500/30 text-indigo-600" },
+  { id: "construction", label: "Construction", icon: HardHat, color: "bg-yellow-500/10 border-yellow-500/30 text-yellow-600" },
+  { id: "renewable_energy", label: "Renewable Energy", icon: Wind, color: "bg-teal-500/10 border-teal-500/30 text-teal-600" },
+  { id: "professional_services", label: "Professional Services", icon: Briefcase, color: "bg-violet-500/10 border-violet-500/30 text-violet-600" },
+  { id: "ecommerce", label: "E-Commerce", icon: ShoppingCart, color: "bg-cyan-500/10 border-cyan-500/30 text-cyan-600" },
+  { id: "education", label: "Corporate Training", icon: GraduationCap, color: "bg-lime-500/10 border-lime-500/30 text-lime-600" },
   { id: "other", label: "Other / Blank", icon: FileQuestion, color: "bg-slate-500/10 border-slate-500/30 text-slate-600" },
 ];
 
