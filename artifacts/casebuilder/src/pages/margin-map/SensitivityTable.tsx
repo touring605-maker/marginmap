@@ -39,6 +39,8 @@ const OUTPUT_METRICS: OutputMetric[] = [
   { label: 'Blended Gross Margin %', getValue: (r) => r.aggregate.blendedGrossMarginPct, format: formatPct },
 ];
 
+type RangeMode = 'auto' | 'custom';
+
 interface Props {
   baseline: BaselineData;
   scenarios: Scenario[];
@@ -49,15 +51,20 @@ export function SensitivityTable({ baseline, scenarios }: Props) {
   const [metricIdx, setMetricIdx] = useState(1);
   const [refIdx, setRefIdx] = useState(0);
   const [steps, setSteps] = useState(5);
+  const [rangeMode, setRangeMode] = useState<RangeMode>('auto');
+  const [customMin, setCustomMin] = useState<string>('');
+  const [customMax, setCustomMax] = useState<string>('');
 
   const metric = OUTPUT_METRICS[metricIdx];
   const refScenario = scenarios[refIdx];
   const isRate = RATE_DRIVERS.has(driverKey);
   const isCurrency = CURRENCY_DRIVERS.has(driverKey);
 
-  const baseValue = useMemo(() => {
+  const refDriverValue = useMemo(() => {
+    const overrideVal = (refScenario.drivers as Record<string, unknown>)[driverKey];
+    if (overrideVal !== undefined) return overrideVal as number;
     return (baseline as unknown as Record<string, number>)[driverKey] ?? 0;
-  }, [baseline, driverKey]);
+  }, [baseline, refScenario, driverKey]);
 
   const refResult = useMemo(
     () => computeScenario(baseline, refScenario),
@@ -66,11 +73,23 @@ export function SensitivityTable({ baseline, scenarios }: Props) {
   const refMetricValue = metric.getValue(refResult);
 
   const rows = useMemo(() => {
-    const halfSteps = Math.floor(steps / 2);
+    let minVal: number;
+    let maxVal: number;
+
+    if (rangeMode === 'custom' && customMin !== '' && customMax !== '') {
+      const rawMin = Number(customMin);
+      const rawMax = Number(customMax);
+      minVal = isRate ? rawMin / 100 : rawMin;
+      maxVal = isRate ? rawMax / 100 : rawMax;
+    } else {
+      minVal = refDriverValue * 0.7;
+      maxVal = refDriverValue * 1.3;
+    }
+
     const range: number[] = [];
-    for (let i = -halfSteps; i <= halfSteps; i++) {
-      const pctShift = i * 0.3 / halfSteps;
-      range.push(baseValue * (1 + pctShift));
+    for (let i = 0; i < steps; i++) {
+      const t = steps === 1 ? 0.5 : i / (steps - 1);
+      range.push(minVal + t * (maxVal - minVal));
     }
 
     return range.map((driverValue) => {
@@ -87,7 +106,7 @@ export function SensitivityTable({ baseline, scenarios }: Props) {
       const delta = outputValue - refMetricValue;
       return { driverValue, outputValue, delta };
     });
-  }, [baseline, refScenario, driverKey, metric, baseValue, steps, refMetricValue]);
+  }, [baseline, refScenario, driverKey, metric, refDriverValue, steps, refMetricValue, rangeMode, customMin, customMax, isRate]);
 
   const formatDriver = (v: number) => {
     if (isRate) return `${(v * 100).toFixed(1)}%`;
@@ -153,6 +172,54 @@ export function SensitivityTable({ baseline, scenarios }: Props) {
         </div>
       </div>
 
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+          <button
+            onClick={() => setRangeMode('auto')}
+            className={`px-3 py-1 text-[10px] font-medium rounded-md transition-colors ${
+              rangeMode === 'auto' ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            Auto (±30%)
+          </button>
+          <button
+            onClick={() => setRangeMode('custom')}
+            className={`px-3 py-1 text-[10px] font-medium rounded-md transition-colors ${
+              rangeMode === 'custom' ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            Custom Range
+          </button>
+        </div>
+        {rangeMode === 'custom' && (
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              {isCurrency && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>}
+              <input
+                type="number"
+                value={customMin}
+                onChange={(e) => setCustomMin(e.target.value)}
+                placeholder="Min"
+                className={`w-24 rounded-md border border-border text-xs px-2 py-1.5 ${isCurrency ? 'pl-5' : ''}`}
+              />
+              {isRate && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>}
+            </div>
+            <span className="text-[10px] text-muted-foreground">to</span>
+            <div className="relative">
+              {isCurrency && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>}
+              <input
+                type="number"
+                value={customMax}
+                onChange={(e) => setCustomMax(e.target.value)}
+                placeholder="Max"
+                className={`w-24 rounded-md border border-border text-xs px-2 py-1.5 ${isCurrency ? 'pl-5' : ''}`}
+              />
+              {isRate && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="border border-border rounded-lg overflow-hidden">
         <table className="w-full text-xs">
           <thead>
@@ -164,29 +231,22 @@ export function SensitivityTable({ baseline, scenarios }: Props) {
           </thead>
           <tbody>
             {rows.map((row, i) => {
-              const isBaseline = Math.abs(row.driverValue - baseValue) < 0.001 * Math.max(1, Math.abs(baseValue));
-              const isPositiveDelta = row.delta > 0.001;
-              const isNegativeDelta = row.delta < -0.001;
+              const isCurrentScenarioValue = Math.abs(row.driverValue - refDriverValue) < 0.001 * Math.max(1, Math.abs(refDriverValue));
 
               let deltaColor = 'text-muted-foreground';
-              if (driverKey.includes('Cost') || driverKey.includes('CAC') || driverKey.includes('Rate') || driverKey.includes('return') || driverKey.includes('commission') || driverKey.includes('discount') || driverKey.includes('marketplace')) {
-                if (isPositiveDelta) deltaColor = 'text-red-500';
-                if (isNegativeDelta) deltaColor = 'text-[#4C7960]';
-              } else {
-                if (isPositiveDelta) deltaColor = 'text-[#4C7960]';
-                if (isNegativeDelta) deltaColor = 'text-red-500';
-              }
+              if (row.delta > 0.001) deltaColor = 'text-[#4C7960]';
+              if (row.delta < -0.001) deltaColor = 'text-red-500';
 
               return (
                 <tr
                   key={i}
                   className={`border-b border-border/30 ${
-                    isBaseline ? 'bg-[#131568]/5 font-semibold' : 'hover:bg-slate-50/50'
+                    isCurrentScenarioValue ? 'bg-[#131568]/5 font-semibold' : 'hover:bg-slate-50/50'
                   }`}
                 >
                   <td className="px-4 py-2 text-foreground font-mono tabular-nums">
                     {formatDriver(row.driverValue)}
-                    {isBaseline && <span className="ml-2 text-[10px] text-[#131568] font-medium">(baseline)</span>}
+                    {isCurrentScenarioValue && <span className="ml-2 text-[10px] text-[#131568] font-medium">(current)</span>}
                   </td>
                   <td className="text-right px-4 py-2 font-mono tabular-nums text-foreground">
                     {metric.format(row.outputValue)}

@@ -327,7 +327,7 @@ function checkConstraints(
         scenarioName: scenario.name,
         message: `DTC CAC payback period is ${paybackMonths === Infinity ? '∞' : paybackMonths.toFixed(1)} months (>12 months)`,
         value: paybackMonths,
-        severity: paybackMonths > 24 ? 'critical' : 'warning',
+        severity: 'critical',
       });
     }
   }

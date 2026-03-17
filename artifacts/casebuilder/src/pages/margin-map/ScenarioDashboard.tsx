@@ -255,13 +255,8 @@ export function ScenarioDashboard() {
                       const isNegative = delta < -0.001;
 
                       let colorClass = 'text-muted-foreground';
-                      if (row.label.includes('Cost') || row.label.includes('Variable')) {
-                        if (isPositive) colorClass = 'text-red-500';
-                        if (isNegative) colorClass = 'text-[#4C7960]';
-                      } else {
-                        if (isPositive) colorClass = 'text-[#4C7960]';
-                        if (isNegative) colorClass = 'text-red-500';
-                      }
+                      if (isPositive) colorClass = 'text-[#4C7960]';
+                      if (isNegative) colorClass = 'text-red-500';
 
                       return (
                         <td key={`delta-${r.scenario.id}`} className={`text-right text-xs px-4 py-2 font-mono tabular-nums bg-slate-50/50 ${colorClass}`}>
