@@ -4,6 +4,9 @@ import { useObjective, useUpsertObjective, useDeleteObjective } from "@/hooks/us
 import { Loader2, Save, Target, Trash2 } from "lucide-react";
 import type { BusinessCase } from "@workspace/api-client-react";
 import { UpdateBusinessCaseBodyStatus } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+
+const API_BASE = `${import.meta.env.VITE_API_URL || ""}/api`;
 
 const INDUSTRIES = [
   { id: "saas", label: "SaaS & Software" },
@@ -20,11 +23,23 @@ const INDUSTRIES = [
   { id: "other", label: "Other" },
 ];
 
+function useCompanies() {
+  return useQuery<Array<{ id: number; name: string }>>({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/companies`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+}
+
 export function OverviewTab({ caseId, caseData }: { caseId: number; caseData: BusinessCase }) {
   const updateMutation = useUpdateCase();
   const { data: objectiveData } = useObjective(caseId);
   const upsertObjective = useUpsertObjective(caseId);
   const deleteObjective = useDeleteObjective(caseId);
+  const { data: companies = [] } = useCompanies();
 
   const [formData, setFormData] = useState({
     name: caseData.name,
@@ -34,6 +49,7 @@ export function OverviewTab({ caseId, caseData }: { caseId: number; caseData: Bu
     timeHorizonMonths: String(caseData.timeHorizonMonths),
     discountRate: String(caseData.discountRate * 100),
     status: caseData.status,
+    companyId: caseData.companyId ?? null as number | null,
   });
 
   const objective = objectiveData?.objective;
@@ -62,6 +78,7 @@ export function OverviewTab({ caseId, caseData }: { caseId: number; caseData: Bu
         timeHorizonMonths: parseInt(formData.timeHorizonMonths, 10),
         discountRate: parseFloat(formData.discountRate) / 100,
         status: formData.status as UpdateBusinessCaseBodyStatus,
+        companyId: formData.companyId,
       },
     });
   };
@@ -115,12 +132,26 @@ export function OverviewTab({ caseId, caseData }: { caseId: number; caseData: Bu
               </select>
             </div>
             <div>
+              <label className="block text-sm font-semibold mb-1.5">Company</label>
+              <select
+                value={formData.companyId ?? ""}
+                onChange={(e) => setFormData({ ...formData, companyId: e.target.value ? Number(e.target.value) : null })}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
+              >
+                <option value="">None</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-semibold mb-1.5">Industry</label>
               <select
                 value={formData.industry}
                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
               >
+                <option value="">Select industry</option>
                 {INDUSTRIES.map((i) => (
                   <option key={i.id} value={i.id}>{i.label}</option>
                 ))}

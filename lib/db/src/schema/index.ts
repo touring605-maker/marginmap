@@ -1,5 +1,6 @@
 export * from "./auth";
 export * from "./organizations";
+export * from "./companies";
 export * from "./businessCases";
 export * from "./scenarios";
 export * from "./costLineItems";

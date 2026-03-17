@@ -1,6 +1,7 @@
 import { pgTable, serial, varchar, text, integer, real, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { usersTable } from "./auth";
 import { organizationsTable } from "./organizations";
+import { companiesTable } from "./companies";
 
 export const caseStatusEnum = pgEnum("case_status", ["draft", "in_review", "approved"]);
 export const caseScenarioModeEnum = pgEnum("case_scenario_mode", ["single", "multi"]);
@@ -11,6 +12,7 @@ export const businessCasesTable = pgTable("business_cases", {
   description: text("description"),
   orgId: integer("org_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   ownerId: varchar("owner_id").notNull().references(() => usersTable.id),
+  companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "set null" }),
   industry: varchar("industry"),
   currency: varchar("currency", { length: 10 }).notNull().default("USD"),
   timeHorizonMonths: integer("time_horizon_months").notNull().default(36),

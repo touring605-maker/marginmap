@@ -90,6 +90,8 @@ export interface BusinessCaseSummary {
   orgId: number;
   ownerId: string;
   /** @nullable */
+  companyId?: number | null;
+  /** @nullable */
   industry?: string | null;
   currency: string;
   timeHorizonMonths: number;
@@ -120,6 +122,8 @@ export interface BusinessCase {
   orgId: number;
   ownerId: string;
   /** @nullable */
+  companyId?: number | null;
+  /** @nullable */
   industry?: string | null;
   currency: string;
   timeHorizonMonths: number;
@@ -135,6 +139,8 @@ export interface CreateBusinessCaseBody {
   /** @minLength 1 */
   name: string;
   description?: string;
+  /** @nullable */
+  companyId?: number | null;
   industry?: string;
   /** @minLength 1 */
   currency: string;
@@ -157,6 +163,8 @@ export interface UpdateBusinessCaseBody {
   name?: string;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  companyId?: number | null;
   /** @nullable */
   industry?: string | null;
   currency?: string;

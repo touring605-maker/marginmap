@@ -1,10 +1,30 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Loader2, Save, Check, Factory, ShoppingBag, Code2, Heart, FileQuestion, Truck, Landmark, HardHat, Wind, Briefcase, ShoppingCart, GraduationCap } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Save, Check, Factory, ShoppingBag, Code2, Heart, FileQuestion, Truck, Landmark, HardHat, Wind, Briefcase, ShoppingCart, GraduationCap, Building2 } from "lucide-react";
 import { useCreateCase } from "@/hooks/use-cases";
 import { useApplyTemplate } from "@/hooks/use-scenarios";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+
+const API_BASE = `${import.meta.env.VITE_API_URL || ""}/api`;
+
+interface Company {
+  id: number;
+  name: string;
+  parentCompanyId?: number | null;
+}
+
+function useCompanies() {
+  return useQuery<Company[]>({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/companies`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+}
 
 const INDUSTRIES = [
   { id: "saas", label: "SaaS & Software", icon: Code2, color: "bg-blue-500/10 border-blue-500/30 text-blue-600" },
@@ -36,6 +56,7 @@ export default function NewCase() {
   const [createdCaseId, setCreatedCaseId] = useState<number | null>(null);
   const applyTemplateMutation = useApplyTemplate(createdCaseId || 0);
   const [step, setStep] = useState(1);
+  const { data: companies = [] } = useCompanies();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -44,6 +65,7 @@ export default function NewCase() {
     currency: "USD",
     timeHorizonMonths: "36",
     discountRate: "10",
+    companyId: null as number | null,
   });
 
   const [applyTemplate, setApplyTemplate] = useState(true);
@@ -57,6 +79,7 @@ export default function NewCase() {
         data: {
           name: formData.name,
           description: formData.description,
+          companyId: formData.companyId,
           industry: formData.industry,
           currency: formData.currency,
           timeHorizonMonths: parseInt(formData.timeHorizonMonths, 10),
@@ -140,6 +163,23 @@ export default function NewCase() {
               <div className="h-px w-full bg-border" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {companies.length > 0 && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      <span className="flex items-center gap-1.5"><Building2 className="w-4 h-4" /> Company <span className="text-muted-foreground font-normal">(Optional)</span></span>
+                    </label>
+                    <select
+                      value={formData.companyId ?? ""}
+                      onChange={(e) => setFormData({ ...formData, companyId: e.target.value ? Number(e.target.value) : null })}
+                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
+                    >
+                      <option value="">None</option>
+                      {companies.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">Industry</label>
                   <select
@@ -279,6 +319,14 @@ export default function NewCase() {
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Industry</p>
                     <p className="font-semibold text-foreground">{selectedIndustry?.label}</p>
                   </div>
+                  {companies.length > 0 && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Company</p>
+                      <p className="font-semibold text-foreground">
+                        {formData.companyId ? companies.find((c) => c.id === formData.companyId)?.name || "—" : "None"}
+                      </p>
+                    </div>
+                  )}
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Currency</p>
                     <p className="font-semibold text-foreground">{formData.currency}</p>

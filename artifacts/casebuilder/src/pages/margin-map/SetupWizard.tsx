@@ -2,7 +2,53 @@ import { useState } from 'react';
 import { ChevronRight, ChevronLeft, Check, HelpCircle } from 'lucide-react';
 import { useMarginMap } from './MarginMapContext';
 import type { BaselineData, SharedCostBehavior } from './marginEngine';
-import { DRIVER_LABELS, JARGON_TOOLTIPS } from './marginEngine';
+import { JARGON_TOOLTIPS } from './marginEngine';
+import { useQuery } from '@tanstack/react-query';
+
+const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api`;
+
+interface SettingsChannel {
+  id: number;
+  name: string;
+  sortOrder: number;
+  companyIds: number[];
+}
+
+interface SettingsCompany {
+  id: number;
+  name: string;
+}
+
+function useSettingsChannels() {
+  return useQuery<SettingsChannel[]>({
+    queryKey: ['channels'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/channels`, { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+}
+
+function useSettingsCompanies() {
+  return useQuery<SettingsCompany[]>({
+    queryKey: ['companies'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/companies`, { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+}
+
+const CHANNEL_SLOTS = ['wholesale', 'dtc', 'dropship'] as const;
+type ChannelSlot = typeof CHANNEL_SLOTS[number];
+
+const DEFAULT_CHANNEL_NAMES: Record<ChannelSlot, string> = {
+  wholesale: 'Wholesale',
+  dtc: 'DTC',
+  dropship: 'Dropship',
+};
 
 const STEPS = [
   { title: 'Volume Drivers', description: 'How much you sell through each channel' },
@@ -109,12 +155,47 @@ export function SetupWizard() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<BaselineData>({ ...DEFAULT_BASELINE });
 
+  const { data: rawChannels = [] } = useSettingsChannels();
+  const { data: companies = [] } = useSettingsCompanies();
+
+  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]));
+
+  const sorted = [...rawChannels].sort((a, b) => a.sortOrder - b.sortOrder).slice(0, 3);
+  const activeSlots: ChannelSlot[] = sorted.length > 0
+    ? (CHANNEL_SLOTS.slice(0, sorted.length) as ChannelSlot[])
+    : [...CHANNEL_SLOTS];
+
+  const channelName = (slot: ChannelSlot): string => {
+    const idx = CHANNEL_SLOTS.indexOf(slot);
+    return sorted[idx]?.name ?? DEFAULT_CHANNEL_NAMES[slot];
+  };
+
+  const channelCompanies = (slot: ChannelSlot): string[] => {
+    const idx = CHANNEL_SLOTS.indexOf(slot);
+    return (sorted[idx]?.companyIds ?? []).map((cid) => companyMap[cid] ?? String(cid));
+  };
+
   const update = (key: keyof BaselineData, value: number | SharedCostBehavior) => {
     setData((d) => ({ ...d, [key]: value }));
   };
 
   const handleComplete = () => {
-    dispatch({ type: 'SET_BASELINE', payload: data });
+    const zeroedData: BaselineData = { ...data };
+    CHANNEL_SLOTS.forEach((slot, idx) => {
+      if (sorted.length > 0 && idx >= sorted.length) {
+        if (slot === 'wholesale') {
+          zeroedData.wholesaleVolume = 0;
+          zeroedData.wholesaleInventoryUnits = 0;
+        } else if (slot === 'dtc') {
+          zeroedData.dtcVolume = 0;
+          zeroedData.dtcInventoryUnits = 0;
+        } else if (slot === 'dropship') {
+          zeroedData.dropshipVolume = 0;
+          zeroedData.dropshipInventoryUnits = 0;
+        }
+      }
+    });
+    dispatch({ type: 'SET_BASELINE', payload: zeroedData });
   };
 
   return (
@@ -124,6 +205,23 @@ export function SetupWizard() {
         <p className="text-sm text-muted-foreground mt-1">
           Enter your current business data. This becomes the locked baseline that all scenarios are measured against.
         </p>
+
+        {sorted.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {sorted.map((ch, i) => {
+              const linkedCos = (ch.companyIds ?? []).map((cid) => companyMap[cid] ?? String(cid));
+              return (
+                <span key={ch.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                  <span className="w-4 h-4 bg-primary/20 rounded-full flex items-center justify-center text-[9px] font-bold">{i + 1}</span>
+                  {ch.name}
+                  {linkedCos.length > 0 && (
+                    <span className="text-[10px] text-primary/70">({linkedCos.join(', ')})</span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 mb-8">
@@ -152,41 +250,76 @@ export function SetupWizard() {
 
         {step === 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label={DRIVER_LABELS.wholesaleVolume} value={data.wholesaleVolume} onChange={(v) => update('wholesaleVolume', v)} suffix="units" />
-            <Field label={DRIVER_LABELS.dtcVolume} value={data.dtcVolume} onChange={(v) => update('dtcVolume', v)} suffix="units" />
-            <Field label={DRIVER_LABELS.dropshipVolume} value={data.dropshipVolume} onChange={(v) => update('dropshipVolume', v)} suffix="orders" />
+            {activeSlots.includes('wholesale') && (
+              <Field
+                label={`${channelName('wholesale')} Unit Volume`}
+                value={data.wholesaleVolume}
+                onChange={(v) => update('wholesaleVolume', v)}
+                suffix="units"
+              />
+            )}
+            {activeSlots.includes('dtc') && (
+              <Field
+                label={`${channelName('dtc')} Unit Volume`}
+                value={data.dtcVolume}
+                onChange={(v) => update('dtcVolume', v)}
+                suffix="units"
+              />
+            )}
+            {activeSlots.includes('dropship') && (
+              <Field
+                label={`${channelName('dropship')} Order Volume`}
+                value={data.dropshipVolume}
+                onChange={(v) => update('dropshipVolume', v)}
+                suffix="orders"
+              />
+            )}
           </div>
         )}
 
         {step === 1 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label={DRIVER_LABELS.wholesaleASP} tooltip={JARGON_TOOLTIPS['ASP']} value={data.wholesaleASP} onChange={(v) => update('wholesaleASP', v)} prefix="$" step={0.01} />
-            <Field label={DRIVER_LABELS.wholesaleDiscountRate} value={data.wholesaleDiscountRate * 100} onChange={(v) => update('wholesaleDiscountRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
-            <Field label={DRIVER_LABELS.dtcASP} tooltip={JARGON_TOOLTIPS['ASP']} value={data.dtcASP} onChange={(v) => update('dtcASP', v)} prefix="$" step={0.01} />
-            <Field label={DRIVER_LABELS.dtcReturnRate} value={data.dtcReturnRate * 100} onChange={(v) => update('dtcReturnRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
-            <Field label={DRIVER_LABELS.dropshipServiceFeeRate} value={data.dropshipServiceFeeRate * 100} onChange={(v) => update('dropshipServiceFeeRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
-            <Field label={DRIVER_LABELS.dropshipMarketplaceFeeRate} value={data.dropshipMarketplaceFeeRate * 100} onChange={(v) => update('dropshipMarketplaceFeeRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
+            {activeSlots.includes('wholesale') && (<>
+              <Field label={`${channelName('wholesale')} ASP`} tooltip={JARGON_TOOLTIPS['ASP']} value={data.wholesaleASP} onChange={(v) => update('wholesaleASP', v)} prefix="$" step={0.01} />
+              <Field label={`${channelName('wholesale')} Discount Rate`} value={data.wholesaleDiscountRate * 100} onChange={(v) => update('wholesaleDiscountRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
+            </>)}
+            {activeSlots.includes('dtc') && (<>
+              <Field label={`${channelName('dtc')} ASP`} tooltip={JARGON_TOOLTIPS['ASP']} value={data.dtcASP} onChange={(v) => update('dtcASP', v)} prefix="$" step={0.01} />
+              <Field label={`${channelName('dtc')} Return Rate`} value={data.dtcReturnRate * 100} onChange={(v) => update('dtcReturnRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
+            </>)}
+            {activeSlots.includes('dropship') && (<>
+              <Field label={`${channelName('dropship')} Service Fee Rate`} value={data.dropshipServiceFeeRate * 100} onChange={(v) => update('dropshipServiceFeeRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
+              <Field label={`${channelName('dropship')} Marketplace/Platform Fees`} value={data.dropshipMarketplaceFeeRate * 100} onChange={(v) => update('dropshipMarketplaceFeeRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
+            </>)}
           </div>
         )}
 
         {step === 2 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label={DRIVER_LABELS.cogsPerUnit} tooltip={JARGON_TOOLTIPS['COGS']} value={data.cogsPerUnit} onChange={(v) => update('cogsPerUnit', v)} prefix="$" step={0.01} />
-            <Field label={DRIVER_LABELS.dtcFulfillmentCostPerUnit} value={data.dtcFulfillmentCostPerUnit} onChange={(v) => update('dtcFulfillmentCostPerUnit', v)} prefix="$" step={0.01} />
-            <Field label={DRIVER_LABELS.dropshipFulfillmentCostPerOrder} value={data.dropshipFulfillmentCostPerOrder} onChange={(v) => update('dropshipFulfillmentCostPerOrder', v)} prefix="$" step={0.01} />
-            <Field label={DRIVER_LABELS.dtcCAC} tooltip={JARGON_TOOLTIPS['CAC']} value={data.dtcCAC} onChange={(v) => update('dtcCAC', v)} prefix="$" step={0.01} />
-            <Field label={DRIVER_LABELS.wholesaleCommissionRate} value={data.wholesaleCommissionRate * 100} onChange={(v) => update('wholesaleCommissionRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
-            <Field label={DRIVER_LABELS.returnProcessingCostPerUnit} value={data.returnProcessingCostPerUnit} onChange={(v) => update('returnProcessingCostPerUnit', v)} prefix="$" step={0.01} />
+            <Field label="Product COGS / Unit" tooltip={JARGON_TOOLTIPS['COGS']} value={data.cogsPerUnit} onChange={(v) => update('cogsPerUnit', v)} prefix="$" step={0.01} />
+            {activeSlots.includes('dtc') && (
+              <Field label={`Fulfillment Cost / Unit (${channelName('dtc')})`} value={data.dtcFulfillmentCostPerUnit} onChange={(v) => update('dtcFulfillmentCostPerUnit', v)} prefix="$" step={0.01} />
+            )}
+            {activeSlots.includes('dropship') && (
+              <Field label={`Fulfillment Cost / Order (${channelName('dropship')})`} value={data.dropshipFulfillmentCostPerOrder} onChange={(v) => update('dropshipFulfillmentCostPerOrder', v)} prefix="$" step={0.01} />
+            )}
+            {activeSlots.includes('dtc') && (
+              <Field label={`Customer Acquisition Cost (${channelName('dtc')})`} tooltip={JARGON_TOOLTIPS['CAC']} value={data.dtcCAC} onChange={(v) => update('dtcCAC', v)} prefix="$" step={0.01} />
+            )}
+            {activeSlots.includes('wholesale') && (
+              <Field label={`Sales Commission Rate (${channelName('wholesale')})`} value={data.wholesaleCommissionRate * 100} onChange={(v) => update('wholesaleCommissionRate', v / 100)} suffix="%" step={0.1} min={0} max={100} />
+            )}
+            <Field label="Return Processing Cost / Unit" value={data.returnProcessingCostPerUnit} onChange={(v) => update('returnProcessingCostPerUnit', v)} prefix="$" step={0.01} />
           </div>
         )}
 
         {step === 3 && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label={DRIVER_LABELS.totalSharedCostPool} value={data.totalSharedCostPool} onChange={(v) => update('totalSharedCostPool', v)} prefix="$" step={1000} />
+              <Field label="Total Shared Cost Pool" value={data.totalSharedCostPool} onChange={(v) => update('totalSharedCostPool', v)} prefix="$" step={1000} />
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  {DRIVER_LABELS.sharedCostBehavior}
+                  Shared Cost Behavior
                   <Tooltip text={JARGON_TOOLTIPS['Step-Fixed Costs']} />
                 </label>
                 <select
@@ -203,18 +336,24 @@ export function SetupWizard() {
 
             {data.sharedCostBehavior === 'stepFixed' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <Field label={DRIVER_LABELS.stepFixedThresholdVolume} value={data.stepFixedThresholdVolume ?? 0} onChange={(v) => update('stepFixedThresholdVolume', v)} suffix="units" />
-                <Field label={DRIVER_LABELS.stepFixedIncrease} value={data.stepFixedIncrease ?? 0} onChange={(v) => update('stepFixedIncrease', v)} prefix="$" step={1000} />
+                <Field label="Step-Fixed Threshold Volume" value={data.stepFixedThresholdVolume ?? 0} onChange={(v) => update('stepFixedThresholdVolume', v)} suffix="units" />
+                <Field label="Step-Fixed Increase Amount" value={data.stepFixedIncrease ?? 0} onChange={(v) => update('stepFixedIncrease', v)} prefix="$" step={1000} />
               </div>
             )}
 
             <div className="border-t border-border pt-4">
               <h4 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Operational Constraints</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label={DRIVER_LABELS.warehouseCapacityUnits} value={data.warehouseCapacityUnits} onChange={(v) => update('warehouseCapacityUnits', v)} suffix="units" />
-                <Field label={DRIVER_LABELS.wholesaleInventoryUnits} value={data.wholesaleInventoryUnits} onChange={(v) => update('wholesaleInventoryUnits', v)} suffix="units" />
-                <Field label={DRIVER_LABELS.dtcInventoryUnits} value={data.dtcInventoryUnits} onChange={(v) => update('dtcInventoryUnits', v)} suffix="units" />
-                <Field label={DRIVER_LABELS.dropshipInventoryUnits} value={data.dropshipInventoryUnits} onChange={(v) => update('dropshipInventoryUnits', v)} suffix="units" />
+                <Field label="Warehouse Throughput Ceiling" value={data.warehouseCapacityUnits} onChange={(v) => update('warehouseCapacityUnits', v)} suffix="units" />
+                {activeSlots.includes('wholesale') && (
+                  <Field label={`${channelName('wholesale')} Inventory Available`} value={data.wholesaleInventoryUnits} onChange={(v) => update('wholesaleInventoryUnits', v)} suffix="units" />
+                )}
+                {activeSlots.includes('dtc') && (
+                  <Field label={`${channelName('dtc')} Inventory Available`} value={data.dtcInventoryUnits} onChange={(v) => update('dtcInventoryUnits', v)} suffix="units" />
+                )}
+                {activeSlots.includes('dropship') && (
+                  <Field label={`${channelName('dropship')} Inventory Available`} value={data.dropshipInventoryUnits} onChange={(v) => update('dropshipInventoryUnits', v)} suffix="units" />
+                )}
               </div>
             </div>
           </div>

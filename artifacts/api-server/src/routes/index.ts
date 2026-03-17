@@ -7,6 +7,7 @@ import dependenciesRouter from "./dependencies";
 import canvasRouter from "./canvas";
 import exchangeRatesRouter from "./exchangeRates";
 import templatesRouter from "./templates";
+import companiesRouter from "./companies";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(dependenciesRouter);
 router.use(canvasRouter);
 router.use(exchangeRatesRouter);
 router.use(templatesRouter);
+router.use(companiesRouter);
 
 export default router;

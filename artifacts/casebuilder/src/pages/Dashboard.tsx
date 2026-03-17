@@ -1,11 +1,39 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Plus, Briefcase, TrendingUp, Calendar, AlertCircle, DollarSign, ArrowRight } from "lucide-react";
+import { Plus, Briefcase, TrendingUp, Calendar, AlertCircle, DollarSign, ArrowRight, Building2 } from "lucide-react";
 import { useCases } from "@/hooks/use-cases";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+
+const API_BASE = `${import.meta.env.VITE_API_URL || ""}/api`;
+
+interface Company {
+  id: number;
+  name: string;
+  parentCompanyId?: number | null;
+}
+
+function useCompanies() {
+  return useQuery<Company[]>({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/companies`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+}
+
+function getAllSubsidiaryIds(companies: Company[], parentId: number): number[] {
+  const direct = companies.filter((c) => c.parentCompanyId === parentId);
+  return [parentId, ...direct.flatMap((c) => getAllSubsidiaryIds(companies, c.id))];
+}
 
 export default function Dashboard() {
   const { data: cases, isLoading } = useCases();
+  const { data: companies = [] } = useCompanies();
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
 
   if (isLoading) {
     return (
@@ -15,13 +43,23 @@ export default function Dashboard() {
     );
   }
 
-  const activeCases = cases?.filter(c => c.status !== "approved")?.length || 0;
-  const totalCases = cases?.length || 0;
-  const totalInvestment = cases?.reduce((sum, c) => sum + (c.totalInvestment || 0), 0) || 0;
-  const totalExpectedValue = cases?.reduce((sum, c) => sum + (c.totalExpectedValue || 0), 0) || 0;
+  const companyIdSet = selectedCompanyId !== null
+    ? new Set(getAllSubsidiaryIds(companies, selectedCompanyId))
+    : null;
+
+  const filteredCases = companyIdSet
+    ? (cases || []).filter((c) => c.companyId != null && companyIdSet.has(c.companyId))
+    : (cases || []);
+
+  const activeCases = filteredCases?.filter(c => c.status !== "approved")?.length || 0;
+  const totalCases = filteredCases?.length || 0;
+  const totalInvestment = filteredCases?.reduce((sum, c) => sum + (c.totalInvestment || 0), 0) || 0;
+  const totalExpectedValue = filteredCases?.reduce((sum, c) => sum + (c.totalExpectedValue || 0), 0) || 0;
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(val);
+
+  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c]));
 
   return (
     <div className="space-y-8 pb-12">
@@ -30,12 +68,29 @@ export default function Dashboard() {
           <h1 className="text-3xl font-display font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Manage your organization's business cases.</p>
         </div>
-        <Link href="/cases/new">
-          <button className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all">
-            <Plus className="w-5 h-5" />
-            New Case
-          </button>
-        </Link>
+        <div className="flex items-center gap-3">
+          {companies.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-muted-foreground" />
+              <select
+                value={selectedCompanyId ?? ""}
+                onChange={(e) => setSelectedCompanyId(e.target.value ? Number(e.target.value) : null)}
+                className="px-3 py-2 rounded-xl border border-border bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="">All Companies</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <Link href="/cases/new">
+            <button className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all">
+              <Plus className="w-5 h-5" />
+              New Case
+            </button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -73,24 +128,36 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <h2 className="text-xl font-display font-bold mb-4">Recent Business Cases</h2>
+        <h2 className="text-xl font-display font-bold mb-4">
+          {selectedCompanyId && companyMap[selectedCompanyId]
+            ? `Cases for ${companyMap[selectedCompanyId].name}`
+            : "Recent Business Cases"}
+        </h2>
 
-        {!cases || cases.length === 0 ? (
+        {!filteredCases || filteredCases.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 border border-dashed border-border rounded-2xl p-12 text-center">
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Briefcase className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-2">No business cases yet</h3>
-            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">Create your first business case to start modeling costs, tracking value, and generating financial projections.</p>
-            <Link href="/cases/new">
-              <button className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors">
-                Create First Case
-              </button>
-            </Link>
+            <h3 className="text-lg font-bold text-foreground mb-2">
+              {selectedCompanyId ? "No cases for this company" : "No business cases yet"}
+            </h3>
+            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+              {selectedCompanyId
+                ? "There are no business cases tagged to this company or its subsidiaries."
+                : "Create your first business case to start modeling costs, tracking value, and generating financial projections."}
+            </p>
+            {!selectedCompanyId && (
+              <Link href="/cases/new">
+                <button className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors">
+                  Create First Case
+                </button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {cases.map((c, i) => (
+            {filteredCases.map((c, i) => (
               <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 key={c.id}
@@ -101,6 +168,11 @@ export default function Dashboard() {
                       <div>
                         <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">{c.name}</h3>
                         <p className="text-sm text-muted-foreground line-clamp-1">{c.description || "No description provided."}</p>
+                        {c.companyId && companyMap[c.companyId] && (
+                          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-[10px] bg-primary/10 text-primary rounded font-medium">
+                            <Building2 className="w-2.5 h-2.5" /> {companyMap[c.companyId].name}
+                          </span>
+                        )}
                       </div>
                       <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
                         c.status === "approved" ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" :

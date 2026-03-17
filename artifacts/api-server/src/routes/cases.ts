@@ -9,6 +9,7 @@ import {
   financialObjectivesTable,
   scenariosTable,
   userTemplatesTable,
+  companiesTable,
 } from "@workspace/db";
 import {
   CreateBusinessCaseBody,
@@ -189,6 +190,13 @@ router.post("/cases", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   const org = await getOrCreateOrg(req.user.id);
+
+  if (parsed.data.companyId != null) {
+    const [co] = await db.select({ id: companiesTable.id }).from(companiesTable)
+      .where(and(eq(companiesTable.id, parsed.data.companyId), eq(companiesTable.orgId, org.id)));
+    if (!co) { res.status(400).json({ error: "Company not found in this org" }); return; }
+  }
+
   const [bc] = await db.insert(businessCasesTable).values({
     ...parsed.data,
     orgId: org.id,
@@ -234,6 +242,13 @@ router.patch("/cases/:id", async (req: Request, res: Response): Promise<void> =>
     return;
   }
   const org = await getOrCreateOrg(req.user.id);
+
+  if (body.data.companyId != null) {
+    const [co] = await db.select({ id: companiesTable.id }).from(companiesTable)
+      .where(and(eq(companiesTable.id, body.data.companyId), eq(companiesTable.orgId, org.id)));
+    if (!co) { res.status(400).json({ error: "Company not found in this org" }); return; }
+  }
+
   const [bc] = await db.update(businessCasesTable).set(body.data).where(
     and(eq(businessCasesTable.id, params.data.id), eq(businessCasesTable.orgId, org.id))
   ).returning();
