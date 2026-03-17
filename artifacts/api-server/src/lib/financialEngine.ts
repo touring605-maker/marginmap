@@ -13,6 +13,9 @@ interface CashFlowPeriod {
   cumulativeBenefits: number;
   cumulativeNpv: number;
   runningIrr: number | null;
+  projectCosts: number;
+  currentStateCosts: number;
+  futureStateCosts: number;
 }
 
 interface ObjectiveProgress {
@@ -185,13 +188,17 @@ async function computeFinancialModelInternal(
     ? [eq(valueDriversTable.businessCaseId, bc.id), eq(valueDriversTable.scenarioId, scenarioId)]
     : [eq(valueDriversTable.businessCaseId, bc.id), isNull(valueDriversTable.scenarioId)];
 
-  const costs = await db.select().from(costLineItemsTable).where(and(...costConditions));
+  const allCosts = await db.select().from(costLineItemsTable).where(and(...costConditions));
   const values = await db.select().from(valueDriversTable).where(and(...valueConditions));
   const [objective] = await db.select().from(financialObjectivesTable).where(eq(financialObjectivesTable.businessCaseId, bc.id));
 
+  const projectCostItems = allCosts.filter(c => c.costPhase === "project_cost");
+  const currentStateItems = allCosts.filter(c => c.costPhase === "current_state");
+  const futureStateItems = allCosts.filter(c => c.costPhase === "future_state");
+
   const caseCurrency = bc.currency;
 
-  const costCurrencies = new Set(costs.map(c => c.currency ?? caseCurrency));
+  const costCurrencies = new Set(allCosts.map(c => c.currency ?? caseCurrency));
   const valueCurrencies = new Set(values.map(v => v.currency ?? caseCurrency));
   const allCurrencies = new Set([...costCurrencies, ...valueCurrencies]);
   allCurrencies.delete(caseCurrency);
@@ -212,18 +219,17 @@ async function computeFinancialModelInternal(
   const discountRate = bc.discountRate;
   const monthlyRate = discountRate / 12;
 
-  const monthlyBenefits: number[] = [];
   const monthlyNetFlows: number[] = [];
   let totalInvestment = 0;
   let totalExpectedValue = 0;
 
   for (let m = 0; m < months; m++) {
-    let monthlyCost = 0;
+    let monthlyProjectCost = 0;
     let monthlyBenefit = 0;
 
-    for (const cost of costs) {
+    for (const cost of projectCostItems) {
       const fxRate = fxRates[cost.currency ?? caseCurrency] ?? 1;
-      monthlyCost += computeMonthlyCost(cost, m, fxRate);
+      monthlyProjectCost += computeMonthlyCost(cost, m, fxRate);
     }
 
     for (const value of values) {
@@ -235,10 +241,9 @@ async function computeFinancialModelInternal(
       monthlyBenefit += cascadedAnnualValue / 12;
     }
 
-    totalInvestment += monthlyCost;
+    totalInvestment += monthlyProjectCost;
     totalExpectedValue += monthlyBenefit;
-    monthlyBenefits.push(monthlyBenefit);
-    monthlyNetFlows.push(monthlyBenefit - monthlyCost);
+    monthlyNetFlows.push(monthlyBenefit - monthlyProjectCost);
   }
 
   let confidenceAdjustedValue = 0;
@@ -271,34 +276,48 @@ async function computeFinancialModelInternal(
     const netFlowsUpToNow = monthlyNetFlows.slice(0, i + 1);
     const runningIrr = i >= 1 ? calculateIRR(netFlowsUpToNow) : null;
 
-    let monthlyCostPeriod = 0;
-    let monthlyBenefitPeriod = 0;
-    for (const cost of costs) {
+    let periodProjectCost = 0;
+    let periodCurrentStateCost = 0;
+    let periodFutureStateCost = 0;
+    let periodBenefit = 0;
+
+    for (const cost of projectCostItems) {
       const fxRate = fxRates[cost.currency ?? caseCurrency] ?? 1;
-      monthlyCostPeriod += computeMonthlyCost(cost, i, fxRate);
+      periodProjectCost += computeMonthlyCost(cost, i, fxRate);
+    }
+    for (const cost of currentStateItems) {
+      const fxRate = fxRates[cost.currency ?? caseCurrency] ?? 1;
+      periodCurrentStateCost += computeMonthlyCost(cost, i, fxRate);
+    }
+    for (const cost of futureStateItems) {
+      const fxRate = fxRates[cost.currency ?? caseCurrency] ?? 1;
+      periodFutureStateCost += computeMonthlyCost(cost, i, fxRate);
     }
     for (const value of values) {
       const fxRate = fxRates[value.currency ?? caseCurrency] ?? 1;
-      monthlyBenefitPeriod += computeMonthlyBenefit(value, i, fxRate);
+      periodBenefit += computeMonthlyBenefit(value, i, fxRate);
     }
     if (cascadedAnnualValue > 0) {
-      monthlyBenefitPeriod += cascadedAnnualValue / 12;
+      periodBenefit += cascadedAnnualValue / 12;
     }
 
-    runningCumulativeCosts += monthlyCostPeriod;
-    runningCumulativeBenefits += monthlyBenefitPeriod;
+    runningCumulativeCosts += periodProjectCost;
+    runningCumulativeBenefits += periodBenefit;
 
     cashFlows.push({
       period: i + 1,
       periodLabel: `Month ${i + 1}`,
-      costs: Math.round(monthlyCostPeriod * 100) / 100,
-      benefits: Math.round(monthlyBenefitPeriod * 100) / 100,
+      costs: Math.round(periodProjectCost * 100) / 100,
+      benefits: Math.round(periodBenefit * 100) / 100,
       netCashFlow: Math.round(net * 100) / 100,
       cumulativeNet: Math.round(cumulative * 100) / 100,
       cumulativeCosts: Math.round(runningCumulativeCosts * 100) / 100,
       cumulativeBenefits: Math.round(runningCumulativeBenefits * 100) / 100,
       cumulativeNpv: Math.round(cumulativeNpv * 100) / 100,
       runningIrr: runningIrr !== null ? Math.round(runningIrr * 10000) / 10000 : null,
+      projectCosts: Math.round(periodProjectCost * 100) / 100,
+      currentStateCosts: Math.round(periodCurrentStateCost * 100) / 100,
+      futureStateCosts: Math.round(periodFutureStateCost * 100) / 100,
     });
   }
 

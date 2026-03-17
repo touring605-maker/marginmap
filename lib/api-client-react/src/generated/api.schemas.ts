@@ -477,6 +477,9 @@ export interface CashFlowPeriod {
   cumulativeNpv: number;
   /** @nullable */
   runningIrr: number | null;
+  projectCosts: number;
+  currentStateCosts: number;
+  futureStateCosts: number;
 }
 
 export interface ObjectiveProgress {

@@ -1450,7 +1450,7 @@ components:
 
     CashFlowPeriod:
       type: object
-      required: [period, periodLabel, costs, benefits, netCashFlow, cumulativeNet, cumulativeCosts, cumulativeBenefits, cumulativeNpv, runningIrr]
+      required: [period, periodLabel, costs, benefits, netCashFlow, cumulativeNet, cumulativeCosts, cumulativeBenefits, cumulativeNpv, runningIrr, projectCosts, currentStateCosts, futureStateCosts]
       properties:
         period:
           type: integer
@@ -1472,6 +1472,12 @@ components:
           type: number
         runningIrr:
           type: [number, 'null']
+        projectCosts:
+          type: number
+        currentStateCosts:
+          type: number
+        futureStateCosts:
+          type: number
 
     ObjectiveProgress:
       type: object
