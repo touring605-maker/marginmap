@@ -700,7 +700,6 @@ function IndustryTemplatesSection() {
           <div key={t.id} className="border border-border rounded-xl bg-white dark:bg-slate-900 flex items-center justify-between px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-foreground">{t.name}</p>
-              <p className="text-xs text-muted-foreground">{t.industry}</p>
               <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
                 <span>{t.costItems.length} costs</span>
                 {t.valueDrivers && <span>{t.valueDrivers.length} drivers</span>}
