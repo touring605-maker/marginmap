@@ -246,18 +246,18 @@ export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?:
                 key={driver.id}
                 className={`flex items-center gap-3 p-4 rounded-xl border ${
                   isNegative
-                    ? "bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20"
+                    ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20"
                     : "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20"
                 }`}
               >
                 <div className={`p-2 rounded-lg ${
                   isNegative
-                    ? "bg-rose-100 dark:bg-rose-500/20"
+                    ? "bg-amber-100 dark:bg-amber-500/20"
                     : "bg-emerald-100 dark:bg-emerald-500/20"
                 }`}>
                   <Calculator className={`w-4 h-4 ${
                     isNegative
-                      ? "text-rose-600 dark:text-rose-400"
+                      ? "text-amber-600 dark:text-amber-400"
                       : "text-emerald-600 dark:text-emerald-400"
                   }`} />
                 </div>
@@ -273,7 +273,7 @@ export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?:
                 <div className="text-right">
                   <p className={`text-lg font-bold font-mono ${
                     isNegative
-                      ? "text-rose-600 dark:text-rose-400"
+                      ? "text-amber-600 dark:text-amber-400"
                       : "text-emerald-600 dark:text-emerald-400"
                   }`}>
                     {driver.annualValue >= 0 ? "+" : ""}{formatCurrency(driver.annualValue)}/yr
@@ -288,7 +288,7 @@ export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?:
             <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                Your future state costs are higher than current state. Review your cost model to ensure this is intentional.
+                Costs are increasing. Add value drivers below to strengthen this case and offset the cost increase.
               </p>
             </div>
           )}

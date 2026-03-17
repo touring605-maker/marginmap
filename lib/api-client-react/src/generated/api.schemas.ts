@@ -709,7 +709,7 @@ export interface IndustryTemplate {
   industry: string;
   description?: string;
   costItems: TemplateCostItem[];
-  valueDrivers?: TemplateValueDriver[];
+  valueDrivers: TemplateValueDriver[];
 }
 
 export interface ApplyTemplateBody {

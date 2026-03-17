@@ -1654,7 +1654,7 @@ components:
 
     IndustryTemplate:
       type: object
-      required: [id, name, industry, costItems]
+      required: [id, name, industry, costItems, valueDrivers]
       properties:
         id:
           type: string

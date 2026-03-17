@@ -920,24 +920,22 @@ export const ListIndustryTemplatesResponseItem = zod.object({
         .optional(),
     }),
   ),
-  valueDrivers: zod
-    .array(
-      zod.object({
-        name: zod.string(),
-        description: zod.string().optional(),
-        type: zod.enum([
-          "cost_reduction",
-          "revenue",
-          "margin",
-          "productivity",
-          "risk",
-        ]),
-        annualValue: zod.number(),
-        confidenceLevel: zod.enum(["high", "medium", "low"]),
-        monthsToRealize: zod.number(),
-      }),
-    )
-    .optional(),
+  valueDrivers: zod.array(
+    zod.object({
+      name: zod.string(),
+      description: zod.string().optional(),
+      type: zod.enum([
+        "cost_reduction",
+        "revenue",
+        "margin",
+        "productivity",
+        "risk",
+      ]),
+      annualValue: zod.number(),
+      confidenceLevel: zod.enum(["high", "medium", "low"]),
+      monthsToRealize: zod.number(),
+    }),
+  ),
 });
 export const ListIndustryTemplatesResponse = zod.array(
   ListIndustryTemplatesResponseItem,
