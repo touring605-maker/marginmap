@@ -193,9 +193,6 @@ router.post("/channels", async (req: Request, res: Response): Promise<void> => {
   }
 
   const existingChannels = await db.select({ id: channelsTable.id }).from(channelsTable).where(eq(channelsTable.orgId, org.id));
-  if (existingChannels.length >= 3) {
-    res.status(400).json({ error: "Maximum of 3 channels supported for Margin Map modeling" }); return;
-  }
 
   const [channel] = await db
     .insert(channelsTable)

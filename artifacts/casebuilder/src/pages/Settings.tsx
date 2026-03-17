@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useListIndustryTemplates,
@@ -1379,6 +1380,7 @@ function CompanyTab() {
   const { data: companies = [], isLoading } = useCompanies();
   const [isCreating, setIsCreating] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const { toast } = useToast();
 
   const createMutation = useMutation({
     mutationFn: async (data: Omit<Company, "id" | "orgId">) => {
@@ -1394,6 +1396,9 @@ function CompanyTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       setIsCreating(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to create company", variant: "destructive" });
     },
   });
 
@@ -1411,6 +1416,9 @@ function CompanyTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       setEditingCompany(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to update company", variant: "destructive" });
     },
   });
 
@@ -1642,18 +1650,17 @@ function ChannelsTab() {
         <div className="flex items-center gap-2">
           <Store className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-bold text-foreground">Sales & Distribution Channels</h3>
-          <span className="text-xs text-muted-foreground">({channels.length}/3)</span>
+          <span className="text-xs text-muted-foreground">({channels.length})</span>
         </div>
         <button
           onClick={() => { setIsCreating(true); setEditingChannel(null); }}
-          disabled={channels.length >= 3}
-          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
         >
           <Plus className="w-3 h-3" /> Add Channel
         </button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Define up to 3 sales and distribution channels for use in Margin Map modeling. Each channel maps to a distinct revenue and cost profile. Link channels to companies from your hierarchy.
+        Define sales and distribution channels for use in Margin Map modeling. Each channel maps to a distinct revenue and cost profile. Link channels to companies from your hierarchy.
       </p>
 
       {isCreating && (
