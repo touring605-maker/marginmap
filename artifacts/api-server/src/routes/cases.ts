@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, isNull } from "drizzle-orm";
 import crypto from "crypto";
 import {
   db,
@@ -90,7 +90,7 @@ function annualizeAmount(amount: number, frequency: string): number {
 async function syncCostDeltaValueDriver(businessCaseId: number, scenarioId?: number | null): Promise<void> {
   const conditions = scenarioId
     ? [eq(costLineItemsTable.businessCaseId, businessCaseId), eq(costLineItemsTable.scenarioId, scenarioId)]
-    : [eq(costLineItemsTable.businessCaseId, businessCaseId)];
+    : [eq(costLineItemsTable.businessCaseId, businessCaseId), isNull(costLineItemsTable.scenarioId)];
 
   const allCosts = await db.select().from(costLineItemsTable).where(and(...conditions));
 
@@ -111,7 +111,7 @@ async function syncCostDeltaValueDriver(businessCaseId: number, scenarioId?: num
 
   const vdConditions = scenarioId
     ? [eq(valueDriversTable.businessCaseId, businessCaseId), eq(valueDriversTable.autoCalcKey, "cost_delta"), eq(valueDriversTable.scenarioId, scenarioId)]
-    : [eq(valueDriversTable.businessCaseId, businessCaseId), eq(valueDriversTable.autoCalcKey, "cost_delta")];
+    : [eq(valueDriversTable.businessCaseId, businessCaseId), eq(valueDriversTable.autoCalcKey, "cost_delta"), isNull(valueDriversTable.scenarioId)];
 
   const [existing] = await db.select().from(valueDriversTable).where(and(...vdConditions));
 

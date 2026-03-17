@@ -83,7 +83,7 @@ function useDeleteUserTemplate() {
 function useUpdateUserTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: { name?: string; description?: string } }) => {
+    mutationFn: async ({ id, data }: { id: number; data: { name?: string; description?: string; costItems?: TemplateCostItem[]; valueDrivers?: TemplateValueDriver[] } }) => {
       const res = await fetch(`${API_BASE}/user-templates/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -198,6 +198,226 @@ function TemplateDetailSlideOver({
 
           <div className="pt-4 border-t border-border flex items-center gap-2">
             {actions}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UserTemplateContentEditor({
+  templateId,
+  initialCostItems,
+  initialValueDrivers,
+  onClose,
+  onSaved,
+}: {
+  templateId: number;
+  initialCostItems: TemplateCostItem[];
+  initialValueDrivers: TemplateValueDriver[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const updateMutation = useUpdateUserTemplate();
+  const [costItems, setCostItems] = useState<TemplateCostItem[]>(initialCostItems);
+  const [valueDrivers, setValueDrivers] = useState<TemplateValueDriver[]>(initialValueDrivers);
+  const [newCost, setNewCost] = useState({ name: "", type: "opex", costPhase: "project_cost", amount: "", frequency: "annually" });
+  const [newDriver, setNewDriver] = useState({ name: "", type: "revenue", annualValue: "" });
+  const [showAddCost, setShowAddCost] = useState(false);
+  const [showAddDriver, setShowAddDriver] = useState(false);
+
+  const addCostItem = () => {
+    if (!newCost.name.trim() || !newCost.amount) return;
+    setCostItems([...costItems, { name: newCost.name, type: newCost.type, costPhase: newCost.costPhase, amount: Number(newCost.amount), frequency: newCost.frequency }]);
+    setNewCost({ name: "", type: "opex", costPhase: "project_cost", amount: "", frequency: "annually" });
+    setShowAddCost(false);
+  };
+
+  const removeCostItem = (index: number) => {
+    setCostItems(costItems.filter((_, i) => i !== index));
+  };
+
+  const addValueDriver = () => {
+    if (!newDriver.name.trim() || !newDriver.annualValue) return;
+    setValueDrivers([...valueDrivers, { name: newDriver.name, type: newDriver.type, annualValue: Number(newDriver.annualValue) }]);
+    setNewDriver({ name: "", type: "revenue", annualValue: "" });
+    setShowAddDriver(false);
+  };
+
+  const removeValueDriver = (index: number) => {
+    setValueDrivers(valueDrivers.filter((_, i) => i !== index));
+  };
+
+  const handleSave = () => {
+    updateMutation.mutate(
+      { id: templateId, data: { costItems, valueDrivers } },
+      { onSuccess: onSaved }
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 shadow-2xl h-full overflow-y-auto animate-in slide-in-from-right duration-200">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border px-6 py-4 flex items-center justify-between z-10">
+          <h2 className="text-lg font-bold text-foreground">Edit Template Content</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSave}
+              disabled={updateMutation.isPending}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+            >
+              {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              Save
+            </button>
+            <button onClick={onClose} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Cost Items ({costItems.length})
+              </p>
+              <button onClick={() => setShowAddCost(true)} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium">
+                <Plus className="w-3 h-3" /> Add Cost
+              </button>
+            </div>
+
+            {showAddCost && (
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-border space-y-2 mb-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={newCost.name}
+                    onChange={(e) => setNewCost({ ...newCost, name: e.target.value })}
+                    placeholder="Cost item name"
+                    className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none"
+                  />
+                  <input
+                    type="number"
+                    value={newCost.amount}
+                    onChange={(e) => setNewCost({ ...newCost, amount: e.target.value })}
+                    placeholder="Amount ($)"
+                    className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <select value={newCost.type} onChange={(e) => setNewCost({ ...newCost, type: e.target.value })} className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none">
+                    <option value="opex">OpEx</option>
+                    <option value="capex">CapEx</option>
+                    <option value="one_time">One-Time</option>
+                    <option value="escalating">Escalating</option>
+                    <option value="transition">Transition</option>
+                  </select>
+                  <select value={newCost.costPhase} onChange={(e) => setNewCost({ ...newCost, costPhase: e.target.value })} className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none">
+                    <option value="project_cost">Project Cost</option>
+                    <option value="current_state">Current State</option>
+                    <option value="future_state">Future State</option>
+                  </select>
+                  <select value={newCost.frequency} onChange={(e) => setNewCost({ ...newCost, frequency: e.target.value })} className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none">
+                    <option value="annually">Annually</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="once">Once</option>
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setShowAddCost(false)} className="px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-700 rounded">Cancel</button>
+                  <button onClick={addCostItem} disabled={!newCost.name.trim() || !newCost.amount} className="px-2 py-1 text-xs bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50">Add</button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              {costItems.length === 0 && !showAddCost && (
+                <p className="text-xs text-muted-foreground text-center py-4">No cost items. Click "Add Cost" to define template costs.</p>
+              )}
+              {costItems.map((item, i) => (
+                <div key={i} className="flex items-center justify-between text-sm px-3 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg group">
+                  <div>
+                    <span className="text-foreground font-medium">{item.name}</span>
+                    <span className="ml-2 text-[10px] text-muted-foreground capitalize">
+                      {item.costPhase?.replace("_", " ") || "project"} &middot; {item.type} &middot; {item.frequency || "annually"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm">${item.amount.toLocaleString()}</span>
+                    <button onClick={() => removeCostItem(i)} className="p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Value Drivers ({valueDrivers.length})
+              </p>
+              <button onClick={() => setShowAddDriver(true)} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium">
+                <Plus className="w-3 h-3" /> Add Driver
+              </button>
+            </div>
+
+            {showAddDriver && (
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-border space-y-2 mb-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={newDriver.name}
+                    onChange={(e) => setNewDriver({ ...newDriver, name: e.target.value })}
+                    placeholder="Driver name"
+                    className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none"
+                  />
+                  <input
+                    type="number"
+                    value={newDriver.annualValue}
+                    onChange={(e) => setNewDriver({ ...newDriver, annualValue: e.target.value })}
+                    placeholder="Annual Value ($)"
+                    className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  <select value={newDriver.type} onChange={(e) => setNewDriver({ ...newDriver, type: e.target.value })} className="px-2 py-1.5 rounded border border-border bg-white dark:bg-slate-900 text-xs outline-none">
+                    <option value="revenue">Revenue</option>
+                    <option value="cost_reduction">Cost Reduction</option>
+                    <option value="margin">Margin</option>
+                    <option value="productivity">Productivity</option>
+                    <option value="risk">Risk</option>
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setShowAddDriver(false)} className="px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-slate-700 rounded">Cancel</button>
+                  <button onClick={addValueDriver} disabled={!newDriver.name.trim() || !newDriver.annualValue} className="px-2 py-1 text-xs bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50">Add</button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              {valueDrivers.length === 0 && !showAddDriver && (
+                <p className="text-xs text-muted-foreground text-center py-4">No value drivers. Click "Add Driver" to define template drivers.</p>
+              )}
+              {valueDrivers.map((v, i) => (
+                <div key={i} className="flex items-center justify-between text-sm px-3 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg group">
+                  <div>
+                    <span className="text-foreground font-medium">{v.name}</span>
+                    <span className="ml-2 text-[10px] text-muted-foreground capitalize">{v.type?.replace("_", " ")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm text-emerald-600 dark:text-emerald-400">${v.annualValue.toLocaleString()}/yr</span>
+                    <button onClick={() => removeValueDriver(i)} className="p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -585,6 +805,7 @@ function UserTemplatesSection() {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [viewingTemplate, setViewingTemplate] = useState<number | null>(null);
+  const [editContentId, setEditContentId] = useState<number | null>(null);
   const [applyingTemplate, setApplyingTemplate] = useState<{ id: number; name: string; costItems: TemplateCostItem[]; valueDrivers: TemplateValueDriver[] } | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -775,6 +996,13 @@ function UserTemplatesSection() {
                       <Eye className="w-3.5 h-3.5" />
                     </button>
                     <button
+                      onClick={() => setEditContentId(t.id)}
+                      className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      title="Edit cost items &amp; value drivers"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                    </button>
+                    <button
                       onClick={() => setApplyingTemplate({
                         id: t.id,
                         name: t.name,
@@ -789,7 +1017,7 @@ function UserTemplatesSection() {
                     <button
                       onClick={() => startEdit(t)}
                       className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      title="Edit"
+                      title="Edit name &amp; description"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
@@ -848,6 +1076,24 @@ function UserTemplatesSection() {
           templateValueDrivers={applyingTemplate.valueDrivers}
         />
       )}
+
+      {editContentId !== null && (() => {
+        const t = templatesList.find((tpl) => tpl.id === editContentId);
+        if (!t) return null;
+        return (
+          <UserTemplateContentEditor
+            templateId={t.id}
+            initialCostItems={t.costItems || []}
+            initialValueDrivers={t.valueDrivers || []}
+            onClose={() => setEditContentId(null)}
+            onSaved={() => {
+              setEditContentId(null);
+              setSuccessMsg("Template content saved!");
+              setTimeout(() => setSuccessMsg(null), 3000);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
