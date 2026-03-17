@@ -177,6 +177,8 @@ export function ScenarioDashboard() {
         </div>
       )}
 
+      <ConstraintFlagsPanel results={results} />
+
       <div className="border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -274,8 +276,6 @@ export function ScenarioDashboard() {
           </table>
         </div>
       </div>
-
-      <ConstraintFlagsPanel results={results} />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <WaterfallChart results={results} />

@@ -293,7 +293,7 @@ function checkConstraints(
       scenarioName: scenario.name,
       message: `Total volume (${totalVolume.toLocaleString()}) exceeds warehouse capacity (${d.warehouseCapacityUnits.toLocaleString()})`,
       value: totalVolume,
-      severity: totalVolume > d.warehouseCapacityUnits * 1.1 ? 'critical' : 'warning',
+      severity: 'warning',
     });
   }
 
