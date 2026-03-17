@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Briefcase,
   Network,
+  Settings,
   LogOut,
   Building2,
   Menu,
@@ -23,6 +24,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Business Cases", href: "/cases", icon: Briefcase },
     { name: "Value Map", href: "/canvas", icon: Network },
+    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   return (

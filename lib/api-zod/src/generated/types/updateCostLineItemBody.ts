@@ -5,6 +5,7 @@
  * CaseBuilder API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateCostLineItemBodyCostPhase } from "./updateCostLineItemBodyCostPhase";
 import type { UpdateCostLineItemBodyFrequency } from "./updateCostLineItemBodyFrequency";
 import type { UpdateCostLineItemBodyType } from "./updateCostLineItemBodyType";
 
@@ -22,4 +23,5 @@ export interface UpdateCostLineItemBody {
   depreciationYears?: number | null;
   /** @nullable */
   currency?: string | null;
+  costPhase?: UpdateCostLineItemBodyCostPhase;
 }

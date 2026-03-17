@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import NewCase from "./pages/NewCase";
 import CaseEditor from "./pages/CaseEditor";
 import Canvas from "./pages/Canvas";
+import SettingsPage from "./pages/Settings";
 import PublicView from "./pages/PublicView";
 import CasePublicView from "./pages/CasePublicView";
 import NotFound from "./pages/not-found";
@@ -56,6 +57,7 @@ function Router() {
       <Route path="/cases/new" component={() => <ProtectedRoute component={NewCase} />} />
       <Route path="/cases/:id" component={() => <ProtectedRoute component={CaseEditor} />} />
       <Route path="/canvas" component={() => <ProtectedRoute component={Canvas} />} />
+      <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
       
       {/* Fallback */}
       <Route component={NotFound} />

@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, integer, real, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, text, integer, real, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { businessCasesTable } from "./businessCases";
 import { scenariosTable } from "./scenarios";
 
@@ -16,6 +16,8 @@ export const valueDriversTable = pgTable("value_drivers", {
   confidenceLevel: confidenceEnum("confidence_level").notNull().default("medium"),
   monthsToRealize: integer("months_to_realize").notNull().default(0),
   currency: varchar("currency", { length: 10 }),
+  isAutoCalculated: boolean("is_auto_calculated").notNull().default(false),
+  autoCalcKey: varchar("auto_calc_key", { length: 50 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

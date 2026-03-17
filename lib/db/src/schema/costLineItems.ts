@@ -4,6 +4,7 @@ import { scenariosTable } from "./scenarios";
 
 export const costTypeEnum = pgEnum("cost_type", ["one_time", "capex", "opex", "escalating", "transition"]);
 export const frequencyEnum = pgEnum("frequency", ["once", "monthly", "annually"]);
+export const costPhaseEnum = pgEnum("cost_phase", ["current_state", "future_state", "project_cost"]);
 
 export const costLineItemsTable = pgTable("cost_line_items", {
   id: serial("id").primaryKey(),
@@ -17,6 +18,7 @@ export const costLineItemsTable = pgTable("cost_line_items", {
   escalationRate: real("escalation_rate"),
   depreciationYears: integer("depreciation_years"),
   currency: varchar("currency", { length: 10 }),
+  costPhase: costPhaseEnum("cost_phase").default("project_cost"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

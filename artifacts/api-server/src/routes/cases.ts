@@ -8,6 +8,7 @@ import {
   valueDriversTable,
   financialObjectivesTable,
   scenariosTable,
+  userTemplatesTable,
 } from "@workspace/db";
 import {
   CreateBusinessCaseBody,
@@ -78,6 +79,74 @@ async function verifyScenarioBelongsToCase(scenarioId: number, businessCaseId: n
   const [scenario] = await db.select({ id: scenariosTable.id }).from(scenariosTable)
     .where(and(eq(scenariosTable.id, scenarioId), eq(scenariosTable.businessCaseId, businessCaseId)));
   return !!scenario;
+}
+
+function annualizeAmount(amount: number, frequency: string): number {
+  if (frequency === "monthly") return amount * 12;
+  if (frequency === "annually") return amount;
+  return 0;
+}
+
+async function syncCostDeltaValueDriver(businessCaseId: number, scenarioId?: number | null): Promise<void> {
+  const conditions = scenarioId
+    ? [eq(costLineItemsTable.businessCaseId, businessCaseId), eq(costLineItemsTable.scenarioId, scenarioId)]
+    : [eq(costLineItemsTable.businessCaseId, businessCaseId)];
+
+  const allCosts = await db.select().from(costLineItemsTable).where(and(...conditions));
+
+  let annualCurrent = 0;
+  let annualFuture = 0;
+  let hasCurrentState = false;
+  let hasFutureState = false;
+
+  for (const c of allCosts) {
+    if (c.costPhase === "current_state") {
+      hasCurrentState = true;
+      annualCurrent += annualizeAmount(c.amount, c.frequency);
+    } else if (c.costPhase === "future_state") {
+      hasFutureState = true;
+      annualFuture += annualizeAmount(c.amount, c.frequency);
+    }
+  }
+
+  const vdConditions = scenarioId
+    ? [eq(valueDriversTable.businessCaseId, businessCaseId), eq(valueDriversTable.autoCalcKey, "cost_delta"), eq(valueDriversTable.scenarioId, scenarioId)]
+    : [eq(valueDriversTable.businessCaseId, businessCaseId), eq(valueDriversTable.autoCalcKey, "cost_delta")];
+
+  const [existing] = await db.select().from(valueDriversTable).where(and(...vdConditions));
+
+  if (!hasCurrentState && !hasFutureState) {
+    if (existing) {
+      await db.delete(valueDriversTable).where(eq(valueDriversTable.id, existing.id));
+    }
+    return;
+  }
+
+  const delta = annualCurrent - annualFuture;
+  const driverName = delta >= 0 ? "Cost Savings (Auto-Calculated)" : "Cost Increase (Auto-Calculated)";
+  const driverType = delta >= 0 ? "cost_reduction" as const : "cost_reduction" as const;
+
+  if (existing) {
+    await db.update(valueDriversTable).set({
+      name: driverName,
+      annualValue: delta,
+      type: driverType,
+      description: `Automatically calculated from current state ($${Math.round(annualCurrent).toLocaleString()}/yr) vs future state ($${Math.round(annualFuture).toLocaleString()}/yr)`,
+    }).where(eq(valueDriversTable.id, existing.id));
+  } else {
+    await db.insert(valueDriversTable).values({
+      businessCaseId,
+      scenarioId: scenarioId || null,
+      name: driverName,
+      type: driverType,
+      annualValue: delta,
+      confidenceLevel: "high",
+      monthsToRealize: 0,
+      isAutoCalculated: true,
+      autoCalcKey: "cost_delta",
+      description: `Automatically calculated from current state ($${Math.round(annualCurrent).toLocaleString()}/yr) vs future state ($${Math.round(annualFuture).toLocaleString()}/yr)`,
+    });
+  }
 }
 
 router.get("/cases", async (req: Request, res: Response): Promise<void> => {
@@ -220,7 +289,7 @@ router.post("/cases/:id/apply-template", async (req: Request, res: Response): Pr
     res.status(400).json({ error: "Template not found" });
     return;
   }
-  const items = template.costItems.map(item => ({
+  const costRows = template.costItems.map(item => ({
     businessCaseId: params.data.id,
     name: item.name,
     description: item.description || null,
@@ -229,9 +298,25 @@ router.post("/cases/:id/apply-template", async (req: Request, res: Response): Pr
     frequency: item.frequency as "once" | "monthly" | "annually",
     escalationRate: item.escalationRate || null,
     depreciationYears: item.depreciationYears || null,
+    costPhase: (item as { costPhase?: string }).costPhase as "current_state" | "future_state" | "project_cost" | undefined || "project_cost" as const,
   }));
-  const created = await db.insert(costLineItemsTable).values(items).returning();
-  res.json(ApplyIndustryTemplateResponse.parse(created));
+  const createdCosts = await db.insert(costLineItemsTable).values(costRows).returning();
+
+  if (template.valueDrivers && template.valueDrivers.length > 0) {
+    const valueRows = template.valueDrivers.map(v => ({
+      businessCaseId: params.data.id,
+      name: v.name,
+      description: v.description || null,
+      type: v.type as "cost_reduction" | "revenue" | "margin" | "productivity" | "risk",
+      annualValue: v.annualValue,
+      confidenceLevel: v.confidenceLevel as "high" | "medium" | "low",
+      monthsToRealize: v.monthsToRealize,
+    }));
+    await db.insert(valueDriversTable).values(valueRows);
+  }
+
+  await syncCostDeltaValueDriver(params.data.id);
+  res.json(ApplyIndustryTemplateResponse.parse(createdCosts));
 });
 
 router.get("/cases/:id/costs", async (req: Request, res: Response): Promise<void> => {
@@ -295,6 +380,7 @@ router.post("/cases/:id/costs", async (req: Request, res: Response): Promise<voi
     ...body.data,
     businessCaseId: params.data.id,
   }).returning();
+  await syncCostDeltaValueDriver(params.data.id, body.data.scenarioId);
   res.status(201).json(ListCostLineItemsResponseItem.parse(item));
 });
 
@@ -324,6 +410,7 @@ router.patch("/cases/:id/costs/:costId", async (req: Request, res: Response): Pr
     res.status(404).json({ error: "Cost line item not found" });
     return;
   }
+  await syncCostDeltaValueDriver(params.data.id);
   res.json(UpdateCostLineItemResponse.parse(item));
 });
 
@@ -344,6 +431,7 @@ router.delete("/cases/:id/costs/:costId", async (req: Request, res: Response): P
   await db.delete(costLineItemsTable).where(
     and(eq(costLineItemsTable.id, params.data.costId), eq(costLineItemsTable.businessCaseId, params.data.id))
   );
+  await syncCostDeltaValueDriver(params.data.id);
   res.sendStatus(204);
 });
 
@@ -452,6 +540,13 @@ router.delete("/cases/:id/values/:valueId", async (req: Request, res: Response):
   }
   if (!(await verifyCaseOrgOwnership(params.data.id, req.user.id))) {
     res.status(404).json({ error: "Business case not found" });
+    return;
+  }
+  const [existing] = await db.select().from(valueDriversTable).where(
+    and(eq(valueDriversTable.id, params.data.valueId), eq(valueDriversTable.businessCaseId, params.data.id))
+  );
+  if (existing?.isAutoCalculated) {
+    res.status(400).json({ error: "Cannot delete auto-calculated value drivers" });
     return;
   }
   await db.delete(valueDriversTable).where(
@@ -679,6 +774,71 @@ router.get("/cases/public/:shareToken", async (req: Request, res: Response): Pro
   const financialModel = await computeFinancialModel(bc);
 
   res.json(GetPublicCaseResponse.parse({ case: bc, costs, values, financialModel }));
+});
+
+router.post("/cases/:id/apply-user-template", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const caseId = parseInt(req.params.id, 10);
+  if (isNaN(caseId)) {
+    res.status(400).json({ error: "Invalid case ID" });
+    return;
+  }
+  if (!(await verifyCaseOrgOwnership(caseId, req.user.id))) {
+    res.status(404).json({ error: "Business case not found" });
+    return;
+  }
+  const { templateId } = req.body;
+  if (!templateId) {
+    res.status(400).json({ error: "templateId is required" });
+    return;
+  }
+  const org = await getOrCreateOrg(req.user.id);
+  const [template] = await db.select().from(userTemplatesTable).where(
+    and(eq(userTemplatesTable.id, templateId), eq(userTemplatesTable.orgId, org.id))
+  );
+  if (!template) {
+    res.status(404).json({ error: "Template not found" });
+    return;
+  }
+
+  let createdCosts: typeof costLineItemsTable.$inferSelect[] = [];
+  let createdValues: typeof valueDriversTable.$inferSelect[] = [];
+
+  const costItems = (template.costItems as Array<Record<string, unknown>>) || [];
+  if (costItems.length > 0) {
+    const costRows = costItems.map(item => ({
+      businessCaseId: caseId,
+      name: String(item.name || ""),
+      description: item.description ? String(item.description) : null,
+      type: String(item.type || "opex") as "one_time" | "capex" | "opex" | "escalating" | "transition",
+      amount: Number(item.amount || 0),
+      frequency: String(item.frequency || "annually") as "once" | "monthly" | "annually",
+      escalationRate: item.escalationRate ? Number(item.escalationRate) : null,
+      depreciationYears: item.depreciationYears ? Number(item.depreciationYears) : null,
+      costPhase: (String(item.costPhase || "project_cost")) as "current_state" | "future_state" | "project_cost",
+    }));
+    createdCosts = await db.insert(costLineItemsTable).values(costRows).returning();
+  }
+
+  const valueDriverItems = (template.valueDrivers as Array<Record<string, unknown>>) || [];
+  if (valueDriverItems.length > 0) {
+    const valueRows = valueDriverItems.map(v => ({
+      businessCaseId: caseId,
+      name: String(v.name || ""),
+      description: v.description ? String(v.description) : null,
+      type: String(v.type || "cost_reduction") as "cost_reduction" | "revenue" | "margin" | "productivity" | "risk",
+      annualValue: Number(v.annualValue || 0),
+      confidenceLevel: String(v.confidenceLevel || "medium") as "high" | "medium" | "low",
+      monthsToRealize: Number(v.monthsToRealize || 0),
+    }));
+    createdValues = await db.insert(valueDriversTable).values(valueRows).returning();
+  }
+
+  await syncCostDeltaValueDriver(caseId);
+  res.json({ costs: createdCosts, values: createdValues });
 });
 
 export default router;

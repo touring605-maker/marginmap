@@ -8,3 +8,4 @@ export * from "./financialObjectives";
 export * from "./caseDependencies";
 export * from "./canvasPositions";
 export * from "./exchangeRates";
+export * from "./userTemplates";

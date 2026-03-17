@@ -186,6 +186,19 @@ export const CostLineItemFrequency = {
   annually: "annually",
 } as const;
 
+/**
+ * @nullable
+ */
+export type CostLineItemCostPhase =
+  | (typeof CostLineItemCostPhase)[keyof typeof CostLineItemCostPhase]
+  | null;
+
+export const CostLineItemCostPhase = {
+  current_state: "current_state",
+  future_state: "future_state",
+  project_cost: "project_cost",
+} as const;
+
 export interface CostLineItem {
   id: number;
   businessCaseId: number;
@@ -203,6 +216,8 @@ export interface CostLineItem {
   depreciationYears?: number | null;
   /** @nullable */
   currency?: string | null;
+  /** @nullable */
+  costPhase?: CostLineItemCostPhase;
   createdAt: string;
 }
 
@@ -226,6 +241,15 @@ export const CreateCostLineItemBodyFrequency = {
   annually: "annually",
 } as const;
 
+export type CreateCostLineItemBodyCostPhase =
+  (typeof CreateCostLineItemBodyCostPhase)[keyof typeof CreateCostLineItemBodyCostPhase];
+
+export const CreateCostLineItemBodyCostPhase = {
+  current_state: "current_state",
+  future_state: "future_state",
+  project_cost: "project_cost",
+} as const;
+
 export interface CreateCostLineItemBody {
   /** @minLength 1 */
   name: string;
@@ -237,6 +261,7 @@ export interface CreateCostLineItemBody {
   depreciationYears?: number;
   currency?: string;
   scenarioId?: number;
+  costPhase?: CreateCostLineItemBodyCostPhase;
 }
 
 export type UpdateCostLineItemBodyType =
@@ -259,6 +284,15 @@ export const UpdateCostLineItemBodyFrequency = {
   annually: "annually",
 } as const;
 
+export type UpdateCostLineItemBodyCostPhase =
+  (typeof UpdateCostLineItemBodyCostPhase)[keyof typeof UpdateCostLineItemBodyCostPhase];
+
+export const UpdateCostLineItemBodyCostPhase = {
+  current_state: "current_state",
+  future_state: "future_state",
+  project_cost: "project_cost",
+} as const;
+
 export interface UpdateCostLineItemBody {
   /** @minLength 1 */
   name?: string;
@@ -273,6 +307,7 @@ export interface UpdateCostLineItemBody {
   depreciationYears?: number | null;
   /** @nullable */
   currency?: string | null;
+  costPhase?: UpdateCostLineItemBodyCostPhase;
 }
 
 export type ValueDriverType =
@@ -309,6 +344,9 @@ export interface ValueDriver {
   monthsToRealize: number;
   /** @nullable */
   currency?: string | null;
+  isAutoCalculated?: boolean;
+  /** @nullable */
+  autoCalcKey?: string | null;
   createdAt: string;
 }
 
@@ -616,6 +654,15 @@ export const TemplateCostItemFrequency = {
   annually: "annually",
 } as const;
 
+export type TemplateCostItemCostPhase =
+  (typeof TemplateCostItemCostPhase)[keyof typeof TemplateCostItemCostPhase];
+
+export const TemplateCostItemCostPhase = {
+  current_state: "current_state",
+  future_state: "future_state",
+  project_cost: "project_cost",
+} as const;
+
 export interface TemplateCostItem {
   name: string;
   description?: string;
@@ -624,6 +671,36 @@ export interface TemplateCostItem {
   frequency: TemplateCostItemFrequency;
   escalationRate?: number;
   depreciationYears?: number;
+  costPhase?: TemplateCostItemCostPhase;
+}
+
+export type TemplateValueDriverType =
+  (typeof TemplateValueDriverType)[keyof typeof TemplateValueDriverType];
+
+export const TemplateValueDriverType = {
+  cost_reduction: "cost_reduction",
+  revenue: "revenue",
+  margin: "margin",
+  productivity: "productivity",
+  risk: "risk",
+} as const;
+
+export type TemplateValueDriverConfidenceLevel =
+  (typeof TemplateValueDriverConfidenceLevel)[keyof typeof TemplateValueDriverConfidenceLevel];
+
+export const TemplateValueDriverConfidenceLevel = {
+  high: "high",
+  medium: "medium",
+  low: "low",
+} as const;
+
+export interface TemplateValueDriver {
+  name: string;
+  description?: string;
+  type: TemplateValueDriverType;
+  annualValue: number;
+  confidenceLevel: TemplateValueDriverConfidenceLevel;
+  monthsToRealize: number;
 }
 
 export interface IndustryTemplate {
@@ -632,10 +709,45 @@ export interface IndustryTemplate {
   industry: string;
   description?: string;
   costItems: TemplateCostItem[];
+  valueDrivers?: TemplateValueDriver[];
 }
 
 export interface ApplyTemplateBody {
   templateId: string;
+}
+
+export interface UserTemplate {
+  id: number;
+  orgId: number;
+  name: string;
+  /** @nullable */
+  industry?: string | null;
+  /** @nullable */
+  description?: string | null;
+  costItems: TemplateCostItem[];
+  valueDrivers: TemplateValueDriver[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUserTemplateBody {
+  /** @minLength 1 */
+  name: string;
+  industry?: string;
+  description?: string;
+  costItems?: TemplateCostItem[];
+  valueDrivers?: TemplateValueDriver[];
+}
+
+export interface UpdateUserTemplateBody {
+  /** @minLength 1 */
+  name?: string;
+  /** @nullable */
+  industry?: string | null;
+  /** @nullable */
+  description?: string | null;
+  costItems?: TemplateCostItem[];
+  valueDrivers?: TemplateValueDriver[];
 }
 
 /**
@@ -675,4 +787,13 @@ export type GetFinancialModelParams = {
 
 export type GetExchangeRatesParams = {
   base: string;
+};
+
+export type ApplyUserTemplateBody = {
+  templateId: number;
+};
+
+export type ApplyUserTemplate200 = {
+  costs?: CostLineItem[];
+  values?: ValueDriver[];
 };

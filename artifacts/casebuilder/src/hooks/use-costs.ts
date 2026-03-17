@@ -5,7 +5,8 @@ import {
   useCreateCostLineItem,
   useUpdateCostLineItem,
   useDeleteCostLineItem,
-  getGetFinancialModelQueryKey
+  getGetFinancialModelQueryKey,
+  getListValueDriversQueryKey
 } from "@workspace/api-client-react";
 
 export function useCosts(caseId: number, scenarioId?: number) {
@@ -21,6 +22,7 @@ export function useCreateCost() {
       onSuccess: (data, variables) => {
         queryClient.invalidateQueries({ queryKey: getListCostLineItemsQueryKey(variables.id) });
         queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(variables.id) });
+        queryClient.invalidateQueries({ queryKey: getListValueDriversQueryKey(variables.id) });
       }
     }
   });
@@ -33,6 +35,7 @@ export function useUpdateCost() {
       onSuccess: (data, variables) => {
         queryClient.invalidateQueries({ queryKey: getListCostLineItemsQueryKey(variables.id) });
         queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(variables.id) });
+        queryClient.invalidateQueries({ queryKey: getListValueDriversQueryKey(variables.id) });
       }
     }
   });
@@ -45,6 +48,7 @@ export function useDeleteCost() {
       onSuccess: (data, variables) => {
         queryClient.invalidateQueries({ queryKey: getListCostLineItemsQueryKey(variables.id) });
         queryClient.invalidateQueries({ queryKey: getGetFinancialModelQueryKey(variables.id) });
+        queryClient.invalidateQueries({ queryKey: getListValueDriversQueryKey(variables.id) });
       }
     }
   });

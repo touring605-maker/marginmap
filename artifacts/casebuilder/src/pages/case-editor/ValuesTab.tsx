@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useValues, useCreateValue, useUpdateValue, useDeleteValue } from "@/hooks/use-values";
 import { useListCaseDependencies, useListBusinessCases } from "@workspace/api-client-react";
-import { Plus, Trash2, Loader2, Pencil, Link2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Pencil, Link2, Lock, AlertTriangle, Calculator } from "lucide-react";
 
 const VALUE_TYPES = [
   { value: "cost_reduction", label: "Cost Reduction" },
@@ -213,6 +213,8 @@ export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?:
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
 
+  const autoCalcDrivers = (values || []).filter(v => v.isAutoCalculated);
+  const manualDrivers = (values || []).filter(v => !v.isAutoCalculated);
   const totalValue = values?.reduce((sum, v) => sum + v.annualValue, 0) || 0;
 
   return (
@@ -234,6 +236,64 @@ export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?:
           <Plus className="w-4 h-4" /> Add Value
         </button>
       </div>
+
+      {autoCalcDrivers.length > 0 && (
+        <div className="space-y-3">
+          {autoCalcDrivers.map((driver) => {
+            const isNegative = driver.annualValue < 0;
+            return (
+              <div
+                key={driver.id}
+                className={`flex items-center gap-3 p-4 rounded-xl border ${
+                  isNegative
+                    ? "bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20"
+                    : "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20"
+                }`}
+              >
+                <div className={`p-2 rounded-lg ${
+                  isNegative
+                    ? "bg-rose-100 dark:bg-rose-500/20"
+                    : "bg-emerald-100 dark:bg-emerald-500/20"
+                }`}>
+                  <Calculator className={`w-4 h-4 ${
+                    isNegative
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-emerald-600 dark:text-emerald-400"
+                  }`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-foreground">{driver.name}</p>
+                    <Lock className="w-3 h-3 text-muted-foreground" />
+                  </div>
+                  {driver.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{driver.description}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className={`text-lg font-bold font-mono ${
+                    isNegative
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-emerald-600 dark:text-emerald-400"
+                  }`}>
+                    {driver.annualValue >= 0 ? "+" : ""}{formatCurrency(driver.annualValue)}/yr
+                  </p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Auto-calculated</p>
+                </div>
+              </div>
+            );
+          })}
+
+          {autoCalcDrivers.some(d => d.annualValue < 0) && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Your future state costs are higher than current state. Review your cost model to ensure this is intentional.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {isAdding && (
         <ValueForm
@@ -259,14 +319,14 @@ export function ValuesTab({ caseId, scenarioId }: { caseId: number; scenarioId?:
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {values?.length === 0 ? (
+            {manualDrivers.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  No value drivers defined yet. Click "Add Value" to get started.
+                  No manual value drivers defined yet. Click "Add Value" to get started.
                 </td>
               </tr>
             ) : (
-              values?.map((val) =>
+              manualDrivers.map((val) =>
                 editingId === val.id ? (
                   <tr key={val.id} className="bg-primary/5">
                     <td colSpan={6} className="p-4">

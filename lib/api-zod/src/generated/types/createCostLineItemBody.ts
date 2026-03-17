@@ -5,6 +5,7 @@
  * CaseBuilder API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateCostLineItemBodyCostPhase } from "./createCostLineItemBodyCostPhase";
 import type { CreateCostLineItemBodyFrequency } from "./createCostLineItemBodyFrequency";
 import type { CreateCostLineItemBodyType } from "./createCostLineItemBodyType";
 
@@ -19,4 +20,5 @@ export interface CreateCostLineItemBody {
   depreciationYears?: number;
   currency?: string;
   scenarioId?: number;
+  costPhase?: CreateCostLineItemBodyCostPhase;
 }

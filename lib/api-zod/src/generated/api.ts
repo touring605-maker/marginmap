@@ -247,6 +247,9 @@ export const ApplyIndustryTemplateResponseItem = zod.object({
   escalationRate: zod.number().nullish(),
   depreciationYears: zod.number().nullish(),
   currency: zod.string().nullish(),
+  costPhase: zod
+    .enum(["current_state", "future_state", "project_cost"])
+    .nullish(),
   createdAt: zod.date(),
 });
 export const ApplyIndustryTemplateResponse = zod.array(
@@ -276,6 +279,9 @@ export const ListCostLineItemsResponseItem = zod.object({
   escalationRate: zod.number().nullish(),
   depreciationYears: zod.number().nullish(),
   currency: zod.string().nullish(),
+  costPhase: zod
+    .enum(["current_state", "future_state", "project_cost"])
+    .nullish(),
   createdAt: zod.date(),
 });
 export const ListCostLineItemsResponse = zod.array(
@@ -299,6 +305,9 @@ export const CreateCostLineItemBody = zod.object({
   depreciationYears: zod.number().optional(),
   currency: zod.string().optional(),
   scenarioId: zod.number().optional(),
+  costPhase: zod
+    .enum(["current_state", "future_state", "project_cost"])
+    .optional(),
 });
 
 /**
@@ -320,6 +329,9 @@ export const UpdateCostLineItemBody = zod.object({
   escalationRate: zod.number().nullish(),
   depreciationYears: zod.number().nullish(),
   currency: zod.string().nullish(),
+  costPhase: zod
+    .enum(["current_state", "future_state", "project_cost"])
+    .optional(),
 });
 
 export const UpdateCostLineItemResponse = zod.object({
@@ -334,6 +346,9 @@ export const UpdateCostLineItemResponse = zod.object({
   escalationRate: zod.number().nullish(),
   depreciationYears: zod.number().nullish(),
   currency: zod.string().nullish(),
+  costPhase: zod
+    .enum(["current_state", "future_state", "project_cost"])
+    .nullish(),
   createdAt: zod.date(),
 });
 
@@ -373,6 +388,8 @@ export const ListValueDriversResponseItem = zod.object({
   confidenceLevel: zod.enum(["high", "medium", "low"]),
   monthsToRealize: zod.number(),
   currency: zod.string().nullish(),
+  isAutoCalculated: zod.boolean().optional(),
+  autoCalcKey: zod.string().nullish(),
   createdAt: zod.date(),
 });
 export const ListValueDriversResponse = zod.array(ListValueDriversResponseItem);
@@ -445,6 +462,8 @@ export const UpdateValueDriverResponse = zod.object({
   confidenceLevel: zod.enum(["high", "medium", "low"]),
   monthsToRealize: zod.number(),
   currency: zod.string().nullish(),
+  isAutoCalculated: zod.boolean().optional(),
+  autoCalcKey: zod.string().nullish(),
   createdAt: zod.date(),
 });
 
@@ -638,6 +657,9 @@ export const GetPublicCaseResponse = zod.object({
       escalationRate: zod.number().nullish(),
       depreciationYears: zod.number().nullish(),
       currency: zod.string().nullish(),
+      costPhase: zod
+        .enum(["current_state", "future_state", "project_cost"])
+        .nullish(),
       createdAt: zod.date(),
     }),
   ),
@@ -659,6 +681,8 @@ export const GetPublicCaseResponse = zod.object({
       confidenceLevel: zod.enum(["high", "medium", "low"]),
       monthsToRealize: zod.number(),
       currency: zod.string().nullish(),
+      isAutoCalculated: zod.boolean().optional(),
+      autoCalcKey: zod.string().nullish(),
       createdAt: zod.date(),
     }),
   ),
@@ -891,9 +915,292 @@ export const ListIndustryTemplatesResponseItem = zod.object({
       frequency: zod.enum(["once", "monthly", "annually"]),
       escalationRate: zod.number().optional(),
       depreciationYears: zod.number().optional(),
+      costPhase: zod
+        .enum(["current_state", "future_state", "project_cost"])
+        .optional(),
     }),
   ),
+  valueDrivers: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().optional(),
+        type: zod.enum([
+          "cost_reduction",
+          "revenue",
+          "margin",
+          "productivity",
+          "risk",
+        ]),
+        annualValue: zod.number(),
+        confidenceLevel: zod.enum(["high", "medium", "low"]),
+        monthsToRealize: zod.number(),
+      }),
+    )
+    .optional(),
 });
 export const ListIndustryTemplatesResponse = zod.array(
   ListIndustryTemplatesResponseItem,
 );
+
+/**
+ * @summary List user-created templates for the current org
+ */
+export const ListUserTemplatesResponseItem = zod.object({
+  id: zod.number(),
+  orgId: zod.number(),
+  name: zod.string(),
+  industry: zod.string().nullish(),
+  description: zod.string().nullish(),
+  costItems: zod.array(
+    zod.object({
+      name: zod.string(),
+      description: zod.string().optional(),
+      type: zod.enum(["one_time", "capex", "opex", "escalating", "transition"]),
+      amount: zod.number(),
+      frequency: zod.enum(["once", "monthly", "annually"]),
+      escalationRate: zod.number().optional(),
+      depreciationYears: zod.number().optional(),
+      costPhase: zod
+        .enum(["current_state", "future_state", "project_cost"])
+        .optional(),
+    }),
+  ),
+  valueDrivers: zod.array(
+    zod.object({
+      name: zod.string(),
+      description: zod.string().optional(),
+      type: zod.enum([
+        "cost_reduction",
+        "revenue",
+        "margin",
+        "productivity",
+        "risk",
+      ]),
+      annualValue: zod.number(),
+      confidenceLevel: zod.enum(["high", "medium", "low"]),
+      monthsToRealize: zod.number(),
+    }),
+  ),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListUserTemplatesResponse = zod.array(
+  ListUserTemplatesResponseItem,
+);
+
+/**
+ * @summary Create a new user template
+ */
+
+export const CreateUserTemplateBody = zod.object({
+  name: zod.string().min(1),
+  industry: zod.string().optional(),
+  description: zod.string().optional(),
+  costItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().optional(),
+        type: zod.enum([
+          "one_time",
+          "capex",
+          "opex",
+          "escalating",
+          "transition",
+        ]),
+        amount: zod.number(),
+        frequency: zod.enum(["once", "monthly", "annually"]),
+        escalationRate: zod.number().optional(),
+        depreciationYears: zod.number().optional(),
+        costPhase: zod
+          .enum(["current_state", "future_state", "project_cost"])
+          .optional(),
+      }),
+    )
+    .optional(),
+  valueDrivers: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().optional(),
+        type: zod.enum([
+          "cost_reduction",
+          "revenue",
+          "margin",
+          "productivity",
+          "risk",
+        ]),
+        annualValue: zod.number(),
+        confidenceLevel: zod.enum(["high", "medium", "low"]),
+        monthsToRealize: zod.number(),
+      }),
+    )
+    .optional(),
+});
+
+/**
+ * @summary Update a user template
+ */
+export const UpdateUserTemplateParams = zod.object({
+  templateId: zod.coerce.number(),
+});
+
+export const UpdateUserTemplateBody = zod.object({
+  name: zod.string().min(1).optional(),
+  industry: zod.string().nullish(),
+  description: zod.string().nullish(),
+  costItems: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().optional(),
+        type: zod.enum([
+          "one_time",
+          "capex",
+          "opex",
+          "escalating",
+          "transition",
+        ]),
+        amount: zod.number(),
+        frequency: zod.enum(["once", "monthly", "annually"]),
+        escalationRate: zod.number().optional(),
+        depreciationYears: zod.number().optional(),
+        costPhase: zod
+          .enum(["current_state", "future_state", "project_cost"])
+          .optional(),
+      }),
+    )
+    .optional(),
+  valueDrivers: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        description: zod.string().optional(),
+        type: zod.enum([
+          "cost_reduction",
+          "revenue",
+          "margin",
+          "productivity",
+          "risk",
+        ]),
+        annualValue: zod.number(),
+        confidenceLevel: zod.enum(["high", "medium", "low"]),
+        monthsToRealize: zod.number(),
+      }),
+    )
+    .optional(),
+});
+
+export const UpdateUserTemplateResponse = zod.object({
+  id: zod.number(),
+  orgId: zod.number(),
+  name: zod.string(),
+  industry: zod.string().nullish(),
+  description: zod.string().nullish(),
+  costItems: zod.array(
+    zod.object({
+      name: zod.string(),
+      description: zod.string().optional(),
+      type: zod.enum(["one_time", "capex", "opex", "escalating", "transition"]),
+      amount: zod.number(),
+      frequency: zod.enum(["once", "monthly", "annually"]),
+      escalationRate: zod.number().optional(),
+      depreciationYears: zod.number().optional(),
+      costPhase: zod
+        .enum(["current_state", "future_state", "project_cost"])
+        .optional(),
+    }),
+  ),
+  valueDrivers: zod.array(
+    zod.object({
+      name: zod.string(),
+      description: zod.string().optional(),
+      type: zod.enum([
+        "cost_reduction",
+        "revenue",
+        "margin",
+        "productivity",
+        "risk",
+      ]),
+      annualValue: zod.number(),
+      confidenceLevel: zod.enum(["high", "medium", "low"]),
+      monthsToRealize: zod.number(),
+    }),
+  ),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete a user template
+ */
+export const DeleteUserTemplateParams = zod.object({
+  templateId: zod.coerce.number(),
+});
+
+/**
+ * @summary Apply a user template to a business case
+ */
+export const ApplyUserTemplateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ApplyUserTemplateBody = zod.object({
+  templateId: zod.number(),
+});
+
+export const ApplyUserTemplateResponse = zod.object({
+  costs: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        businessCaseId: zod.number(),
+        scenarioId: zod.number().nullish(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        type: zod.enum([
+          "one_time",
+          "capex",
+          "opex",
+          "escalating",
+          "transition",
+        ]),
+        amount: zod.number(),
+        frequency: zod.enum(["once", "monthly", "annually"]),
+        escalationRate: zod.number().nullish(),
+        depreciationYears: zod.number().nullish(),
+        currency: zod.string().nullish(),
+        costPhase: zod
+          .enum(["current_state", "future_state", "project_cost"])
+          .nullish(),
+        createdAt: zod.date(),
+      }),
+    )
+    .optional(),
+  values: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        businessCaseId: zod.number(),
+        scenarioId: zod.number().nullish(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        type: zod.enum([
+          "cost_reduction",
+          "revenue",
+          "margin",
+          "productivity",
+          "risk",
+        ]),
+        annualValue: zod.number(),
+        confidenceLevel: zod.enum(["high", "medium", "low"]),
+        monthsToRealize: zod.number(),
+        currency: zod.string().nullish(),
+        isAutoCalculated: zod.boolean().optional(),
+        autoCalcKey: zod.string().nullish(),
+        createdAt: zod.date(),
+      }),
+    )
+    .optional(),
+});

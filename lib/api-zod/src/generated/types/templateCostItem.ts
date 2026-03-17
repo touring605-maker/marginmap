@@ -5,6 +5,7 @@
  * CaseBuilder API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { TemplateCostItemCostPhase } from "./templateCostItemCostPhase";
 import type { TemplateCostItemFrequency } from "./templateCostItemFrequency";
 import type { TemplateCostItemType } from "./templateCostItemType";
 
@@ -16,4 +17,5 @@ export interface TemplateCostItem {
   frequency: TemplateCostItemFrequency;
   escalationRate?: number;
   depreciationYears?: number;
+  costPhase?: TemplateCostItemCostPhase;
 }

@@ -74,7 +74,8 @@ React + Vite frontend with Tailwind CSS. Uses `@workspace/replit-auth-web` for a
 - Vite proxy: `/api` → `http://localhost:8080`
 - Auth: uses `useAuth()` from `@workspace/replit-auth-web` (never the generated API client for auth)
 - Pages: Login, Dashboard (with case cards showing investment/value totals), NewCase (3-step wizard: details+industry → template → review), CaseEditor (tabs: Overview, Costs, Values, Financial Model, Export), Canvas (React Flow dependency graph), PublicView
-- Case editor tabs: OverviewTab (editable metadata + financial objectives), CostsTab (5 cost types with inline editing), ValuesTab (5 value types with inline editing), ModelTab (NPV/IRR/ROI/breakeven charts + monthly table), ExportTab (PDF/Excel download + shareable URL toggle)
+- Case editor tabs: OverviewTab (editable metadata + financial objectives), CostsTab (3-phase model: Current State, Future State, Project Costs — with cost delta summary bar), ValuesTab (auto-calc cost delta driver at top with lock icon + warning banner for cost increases; manual drivers in table below), ModelTab (NPV/IRR/ROI/breakeven charts + monthly table), ExportTab (PDF/Excel download + shareable URL toggle)
+- Settings page (`/settings`): Templates tab with user template CRUD + industry template browser
 - Scenario management: create/switch/delete scenarios; scenario filtering on costs and values
 - Hooks: `use-cases.ts`, `use-costs.ts`, `use-values.ts`, `use-scenarios.ts` (scenarios, templates, financial objectives)
 - Canvas: `@xyflow/react` (React Flow v12) for dependency graph visualization; `@dagrejs/dagre` for auto-layout; custom CaseNode (shows name, status, NPV, breakeven), DependencyEdge (typed: sequential/parallel/conditional with labels), DependencyDialog for edge creation; positions debounce-saved to server
@@ -85,7 +86,8 @@ Database layer using Drizzle ORM with PostgreSQL. Schema tables:
 - `sessions`, `users` — auth
 - `organizations`, `organization_members` — org scoping
 - `business_cases`, `scenarios` — case management
-- `cost_line_items`, `value_drivers`, `financial_objectives` — financial data
+- `cost_line_items` (with `cost_phase` enum: current_state/future_state/project_cost), `value_drivers` (with `is_auto_calculated` + `auto_calc_key`), `financial_objectives` — financial data
+- `user_templates` — org-scoped custom templates with JSONB costItems/valueDrivers
 - `case_dependencies`, `canvas_positions` — dependency graph
 - `exchange_rates` — cached exchange rates (1hr TTL)
 
@@ -117,4 +119,5 @@ Generated React Query hooks and fetch client. Custom fetch includes `credentials
 - Exchange rates: cached in DB with 1-hour TTL, fetched from `open.er-api.com/v6/latest/{base}`
 - `scenariosTable` is referenced by `costLineItemsTable` and `valueDriversTable` — import order matters
 - IDOR protection: all case sub-resource routes (costs, values, objectives, scenarios, apply-template) call `verifyCaseOrgOwnership(caseId, userId)` before processing — returns 404 if the case doesn't belong to the user's org
-- DB enums: `scenario_type` enum = `base|optimistic|conservative` (used in scenarios table), `case_scenario_mode` enum = `single|multi` (used in business_cases table) — these are separate PG enums to avoid collision
+- DB enums: `scenario_type` enum = `base|optimistic|conservative` (used in scenarios table), `case_scenario_mode` enum = `single|multi` (used in business_cases table), `cost_phase` enum = `current_state|future_state|project_cost` (used in cost_line_items table) — these are separate PG enums to avoid collision
+- Auto-calc value driver: when cost line items have current_state or future_state phases, a `cost_delta` value driver is auto-upserted/deleted on every cost mutation (create/update/delete). The driver is locked (cannot be manually edited or deleted). The backend `syncCostDeltaValueDriver()` handles this.

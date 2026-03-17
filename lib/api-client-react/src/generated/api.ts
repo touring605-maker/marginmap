@@ -18,6 +18,8 @@ import type {
 
 import type {
   ApplyTemplateBody,
+  ApplyUserTemplate200,
+  ApplyUserTemplateBody,
   AuthUserEnvelope,
   BeginBrowserLoginParams,
   BusinessCase,
@@ -29,6 +31,7 @@ import type {
   CreateCaseDependencyBody,
   CreateCostLineItemBody,
   CreateScenarioBody,
+  CreateUserTemplateBody,
   CreateValueDriverBody,
   ErrorEnvelope,
   ExchangeRatesResponse,
@@ -57,8 +60,10 @@ import type {
   UpdateBusinessCaseBody,
   UpdateCaseDependencyBody,
   UpdateCostLineItemBody,
+  UpdateUserTemplateBody,
   UpdateValueDriverBody,
   UpsertFinancialObjectiveBody,
+  UserTemplate,
   ValueDriver,
 } from "./api.schemas";
 
@@ -3879,3 +3884,422 @@ export function useListIndustryTemplates<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List user-created templates for the current org
+ */
+export const getListUserTemplatesUrl = () => {
+  return `/api/user-templates`;
+};
+
+export const listUserTemplates = async (
+  options?: RequestInit,
+): Promise<UserTemplate[]> => {
+  return customFetch<UserTemplate[]>(getListUserTemplatesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUserTemplatesQueryKey = () => {
+  return [`/api/user-templates`] as const;
+};
+
+export const getListUserTemplatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUserTemplates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUserTemplates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUserTemplatesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUserTemplates>>
+  > = ({ signal }) => listUserTemplates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUserTemplates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUserTemplatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUserTemplates>>
+>;
+export type ListUserTemplatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List user-created templates for the current org
+ */
+
+export function useListUserTemplates<
+  TData = Awaited<ReturnType<typeof listUserTemplates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUserTemplates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUserTemplatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new user template
+ */
+export const getCreateUserTemplateUrl = () => {
+  return `/api/user-templates`;
+};
+
+export const createUserTemplate = async (
+  createUserTemplateBody: CreateUserTemplateBody,
+  options?: RequestInit,
+): Promise<UserTemplate> => {
+  return customFetch<UserTemplate>(getCreateUserTemplateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createUserTemplateBody),
+  });
+};
+
+export const getCreateUserTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createUserTemplate>>,
+    TError,
+    { data: BodyType<CreateUserTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createUserTemplate>>,
+  TError,
+  { data: BodyType<CreateUserTemplateBody> },
+  TContext
+> => {
+  const mutationKey = ["createUserTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createUserTemplate>>,
+    { data: BodyType<CreateUserTemplateBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createUserTemplate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateUserTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createUserTemplate>>
+>;
+export type CreateUserTemplateMutationBody = BodyType<CreateUserTemplateBody>;
+export type CreateUserTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new user template
+ */
+export const useCreateUserTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createUserTemplate>>,
+    TError,
+    { data: BodyType<CreateUserTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createUserTemplate>>,
+  TError,
+  { data: BodyType<CreateUserTemplateBody> },
+  TContext
+> => {
+  return useMutation(getCreateUserTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Update a user template
+ */
+export const getUpdateUserTemplateUrl = (templateId: number) => {
+  return `/api/user-templates/${templateId}`;
+};
+
+export const updateUserTemplate = async (
+  templateId: number,
+  updateUserTemplateBody: UpdateUserTemplateBody,
+  options?: RequestInit,
+): Promise<UserTemplate> => {
+  return customFetch<UserTemplate>(getUpdateUserTemplateUrl(templateId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateUserTemplateBody),
+  });
+};
+
+export const getUpdateUserTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateUserTemplate>>,
+    TError,
+    { templateId: number; data: BodyType<UpdateUserTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateUserTemplate>>,
+  TError,
+  { templateId: number; data: BodyType<UpdateUserTemplateBody> },
+  TContext
+> => {
+  const mutationKey = ["updateUserTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateUserTemplate>>,
+    { templateId: number; data: BodyType<UpdateUserTemplateBody> }
+  > = (props) => {
+    const { templateId, data } = props ?? {};
+
+    return updateUserTemplate(templateId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateUserTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateUserTemplate>>
+>;
+export type UpdateUserTemplateMutationBody = BodyType<UpdateUserTemplateBody>;
+export type UpdateUserTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a user template
+ */
+export const useUpdateUserTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateUserTemplate>>,
+    TError,
+    { templateId: number; data: BodyType<UpdateUserTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateUserTemplate>>,
+  TError,
+  { templateId: number; data: BodyType<UpdateUserTemplateBody> },
+  TContext
+> => {
+  return useMutation(getUpdateUserTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Delete a user template
+ */
+export const getDeleteUserTemplateUrl = (templateId: number) => {
+  return `/api/user-templates/${templateId}`;
+};
+
+export const deleteUserTemplate = async (
+  templateId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteUserTemplateUrl(templateId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteUserTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteUserTemplate>>,
+    TError,
+    { templateId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteUserTemplate>>,
+  TError,
+  { templateId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteUserTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteUserTemplate>>,
+    { templateId: number }
+  > = (props) => {
+    const { templateId } = props ?? {};
+
+    return deleteUserTemplate(templateId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteUserTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteUserTemplate>>
+>;
+
+export type DeleteUserTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a user template
+ */
+export const useDeleteUserTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteUserTemplate>>,
+    TError,
+    { templateId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteUserTemplate>>,
+  TError,
+  { templateId: number },
+  TContext
+> => {
+  return useMutation(getDeleteUserTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Apply a user template to a business case
+ */
+export const getApplyUserTemplateUrl = (id: number) => {
+  return `/api/cases/${id}/apply-user-template`;
+};
+
+export const applyUserTemplate = async (
+  id: number,
+  applyUserTemplateBody: ApplyUserTemplateBody,
+  options?: RequestInit,
+): Promise<ApplyUserTemplate200> => {
+  return customFetch<ApplyUserTemplate200>(getApplyUserTemplateUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(applyUserTemplateBody),
+  });
+};
+
+export const getApplyUserTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyUserTemplate>>,
+    TError,
+    { id: number; data: BodyType<ApplyUserTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyUserTemplate>>,
+  TError,
+  { id: number; data: BodyType<ApplyUserTemplateBody> },
+  TContext
+> => {
+  const mutationKey = ["applyUserTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyUserTemplate>>,
+    { id: number; data: BodyType<ApplyUserTemplateBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return applyUserTemplate(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyUserTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyUserTemplate>>
+>;
+export type ApplyUserTemplateMutationBody = BodyType<ApplyUserTemplateBody>;
+export type ApplyUserTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Apply a user template to a business case
+ */
+export const useApplyUserTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyUserTemplate>>,
+    TError,
+    { id: number; data: BodyType<ApplyUserTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof applyUserTemplate>>,
+  TError,
+  { id: number; data: BodyType<ApplyUserTemplateBody> },
+  TContext
+> => {
+  return useMutation(getApplyUserTemplateMutationOptions(options));
+};

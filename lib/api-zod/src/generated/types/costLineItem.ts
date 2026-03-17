@@ -5,6 +5,7 @@
  * CaseBuilder API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CostLineItemCostPhase } from "./costLineItemCostPhase";
 import type { CostLineItemFrequency } from "./costLineItemFrequency";
 import type { CostLineItemType } from "./costLineItemType";
 
@@ -25,5 +26,7 @@ export interface CostLineItem {
   depreciationYears?: number | null;
   /** @nullable */
   currency?: string | null;
+  /** @nullable */
+  costPhase?: CostLineItemCostPhase;
   createdAt: Date;
 }

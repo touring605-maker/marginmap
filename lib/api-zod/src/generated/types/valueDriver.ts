@@ -22,5 +22,8 @@ export interface ValueDriver {
   monthsToRealize: number;
   /** @nullable */
   currency?: string | null;
+  isAutoCalculated?: boolean;
+  /** @nullable */
+  autoCalcKey?: string | null;
   createdAt: Date;
 }

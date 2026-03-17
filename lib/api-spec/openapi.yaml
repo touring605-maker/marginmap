@@ -845,6 +845,110 @@ paths:
                 items:
                   $ref: "#/components/schemas/IndustryTemplate"
 
+  /user-templates:
+    get:
+      tags: [cases]
+      operationId: listUserTemplates
+      summary: List user-created templates for the current org
+      responses:
+        "200":
+          description: List of user templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserTemplate"
+    post:
+      tags: [cases]
+      operationId: createUserTemplate
+      summary: Create a new user template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserTemplateBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserTemplate"
+
+  /user-templates/{templateId}:
+    patch:
+      tags: [cases]
+      operationId: updateUserTemplate
+      summary: Update a user template
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserTemplateBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserTemplate"
+    delete:
+      tags: [cases]
+      operationId: deleteUserTemplate
+      summary: Delete a user template
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /cases/{id}/apply-user-template:
+    post:
+      tags: [cases]
+      operationId: applyUserTemplate
+      summary: Apply a user template to a business case
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templateId]
+              properties:
+                templateId:
+                  type: integer
+      responses:
+        "200":
+          description: Template applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  costs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CostLineItem"
+                  values:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ValueDriver"
+
 components:
   parameters:
     CaseId:
@@ -1112,6 +1216,9 @@ components:
           type: [integer, 'null']
         currency:
           type: [string, 'null']
+        costPhase:
+          type: [string, 'null']
+          enum: [current_state, future_state, project_cost]
         createdAt:
           type: string
           format: date-time
@@ -1141,6 +1248,9 @@ components:
           type: string
         scenarioId:
           type: integer
+        costPhase:
+          type: string
+          enum: [current_state, future_state, project_cost]
 
     UpdateCostLineItemBody:
       type: object
@@ -1164,6 +1274,9 @@ components:
           type: [integer, 'null']
         currency:
           type: [string, 'null']
+        costPhase:
+          type: string
+          enum: [current_state, future_state, project_cost]
 
     ValueDriver:
       type: object
@@ -1190,6 +1303,10 @@ components:
         monthsToRealize:
           type: integer
         currency:
+          type: [string, 'null']
+        isAutoCalculated:
+          type: boolean
+        autoCalcKey:
           type: [string, 'null']
         createdAt:
           type: string
@@ -1551,6 +1668,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TemplateCostItem"
+        valueDrivers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateValueDriver"
 
     TemplateCostItem:
       type: object
@@ -1572,6 +1693,28 @@ components:
           type: number
         depreciationYears:
           type: integer
+        costPhase:
+          type: string
+          enum: [current_state, future_state, project_cost]
+
+    TemplateValueDriver:
+      type: object
+      required: [name, type, annualValue, confidenceLevel, monthsToRealize]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [cost_reduction, revenue, margin, productivity, risk]
+        annualValue:
+          type: number
+        confidenceLevel:
+          type: string
+          enum: [high, medium, low]
+        monthsToRealize:
+          type: integer
 
     ApplyTemplateBody:
       type: object
@@ -1579,3 +1722,71 @@ components:
       properties:
         templateId:
           type: string
+
+    UserTemplate:
+      type: object
+      required: [id, orgId, name, costItems, valueDrivers, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        orgId:
+          type: integer
+        name:
+          type: string
+        industry:
+          type: [string, 'null']
+        description:
+          type: [string, 'null']
+        costItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateCostItem"
+        valueDrivers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateValueDriver"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateUserTemplateBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        industry:
+          type: string
+        description:
+          type: string
+        costItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateCostItem"
+        valueDrivers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateValueDriver"
+
+    UpdateUserTemplateBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        industry:
+          type: [string, 'null']
+        description:
+          type: [string, 'null']
+        costItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateCostItem"
+        valueDrivers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateValueDriver"

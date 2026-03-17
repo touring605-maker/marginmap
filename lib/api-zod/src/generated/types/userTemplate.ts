@@ -8,11 +8,16 @@
 import type { TemplateCostItem } from "./templateCostItem";
 import type { TemplateValueDriver } from "./templateValueDriver";
 
-export interface IndustryTemplate {
-  id: string;
+export interface UserTemplate {
+  id: number;
+  orgId: number;
   name: string;
-  industry: string;
-  description?: string;
+  /** @nullable */
+  industry?: string | null;
+  /** @nullable */
+  description?: string | null;
   costItems: TemplateCostItem[];
-  valueDrivers?: TemplateValueDriver[];
+  valueDrivers: TemplateValueDriver[];
+  createdAt: Date;
+  updatedAt: Date;
 }
