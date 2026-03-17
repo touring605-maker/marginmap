@@ -39,9 +39,7 @@ export default function Login() {
           className="max-w-md mx-auto w-full"
         >
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 rounded-xl bg-[#131568] p-2 shadow-lg shadow-[#131568]/30 flex items-center justify-center">
-              <img src={`${import.meta.env.BASE_URL}images/logo.svg`} alt="Logo" className="w-full h-full rounded-lg object-cover" />
-            </div>
+            <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-12 h-12 rounded-xl shadow-md object-cover" />
             <span className="font-display font-bold text-3xl text-[#131568] dark:text-white tracking-tight">MarginMap</span>
           </div>
 

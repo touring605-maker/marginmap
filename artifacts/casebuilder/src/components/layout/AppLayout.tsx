@@ -30,7 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-[#131568] border-b border-white/10">
         <div className="flex items-center gap-2">
-          <img src={`${import.meta.env.BASE_URL}images/logo.svg`} alt="Logo" className="w-8 h-8 rounded-lg shadow-sm" />
+          <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-display font-bold text-xl text-white tracking-tight">MarginMap</span>
         </div>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-white/70 hover:text-white">
@@ -53,9 +53,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             `}
           >
             <div className="p-6 hidden md:flex items-center gap-3 border-b border-white/10">
-              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 p-1.5 shadow-lg flex items-center justify-center">
-                <img src={`${import.meta.env.BASE_URL}images/logo.svg`} alt="Logo" className="w-full h-full rounded-lg object-cover" />
-              </div>
+              <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-md" />
               <span className="font-display font-bold text-2xl text-white tracking-tight">MarginMap</span>
             </div>
 
