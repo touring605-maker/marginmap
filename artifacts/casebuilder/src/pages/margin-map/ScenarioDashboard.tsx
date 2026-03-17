@@ -1,40 +1,25 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Lock, Unlock, Eye, EyeOff, HelpCircle, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import { useMarginMap } from './MarginMapContext';
 import { ScenarioEditor } from './ScenarioEditor';
 import { BaselineEditor } from './BaselineEditor';
+import { WaterfallChart } from './WaterfallChart';
+import { ChannelMixChart } from './ChannelMixChart';
+import { SensitivityTable } from './SensitivityTable';
+import { ConstraintFlagsPanel } from './ConstraintFlagsPanel';
+import { JargonTooltip } from './JargonTooltip';
 import {
   computeAllScenarios,
   formatCurrency,
   formatPct,
   formatNumber,
-  JARGON_TOOLTIPS,
   type Scenario,
   type ScenarioResult,
   type Channel,
 } from './marginEngine';
 
 function Tip({ term }: { term: string }) {
-  const [show, setShow] = useState(false);
-  const text = JARGON_TOOLTIPS[term];
-  if (!text) return null;
-  return (
-    <span className="relative inline-flex ml-1">
-      <button
-        type="button"
-        className="text-muted-foreground/60 hover:text-primary transition-colors"
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-      >
-        <HelpCircle className="w-3 h-3" />
-      </button>
-      {show && (
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 p-2 text-xs bg-slate-900 text-white rounded-lg shadow-lg z-50 leading-relaxed whitespace-normal">
-          {text}
-        </span>
-      )}
-    </span>
-  );
+  return <JargonTooltip term={term} />;
 }
 
 const CHANNEL_LABELS: Record<Channel, string> = {
@@ -295,23 +280,14 @@ export function ScenarioDashboard() {
         </div>
       </div>
 
-      {results.some((r) => r.constraints.length > 0) && (
-        <div className="space-y-2">
-          {results.flatMap((r) =>
-            r.constraints.map((c, i) => (
-              <div
-                key={`${r.scenario.id}-${i}`}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium
-                  ${c.severity === 'critical' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}
-                `}
-              >
-                <span className="font-semibold">{c.scenarioName}:</span>
-                <span>{c.message}</span>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      <ConstraintFlagsPanel results={results} />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <WaterfallChart results={results} />
+        <ChannelMixChart results={results} />
+      </div>
+
+      <SensitivityTable baseline={baseline} scenarios={displayScenarios} />
 
       {editingScenario && (
         <ScenarioEditor
