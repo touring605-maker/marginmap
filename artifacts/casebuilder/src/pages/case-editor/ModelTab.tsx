@@ -52,7 +52,7 @@ function aggregateToYears(cashFlows: CashFlowPeriod[]): AggregatedPeriod[] {
     const last = chunk[chunk.length - 1];
 
     const irrValues = chunk.filter(c => c.runningIrr !== null && c.runningIrr !== undefined).map(c => c.runningIrr as number);
-    const avgIrr = irrValues.length > 0 ? irrValues[irrValues.length - 1] : null;
+    const avgIrr = irrValues.length > 0 ? irrValues.reduce((a, b) => a + b, 0) / irrValues.length : null;
 
     years.push({
       period: y + 1,
@@ -138,6 +138,7 @@ export function ModelTab({ caseId, caseData, scenarioId }: ModelTabProps) {
     { key: "futureState", label: "Future State Costs", colorClass: "text-slate-500 dark:text-slate-400", bgClass: "", getValue: (cf) => formatCurrency(cf.futureStateCosts) },
     { key: "projectCosts", label: "Project Costs", colorClass: "text-rose-600 dark:text-rose-400", bgClass: "", getValue: (cf) => cf.projectCosts > 0 ? formatCurrency(cf.projectCosts) : "\u2014" },
     { key: "netSavings", label: "Net Savings (Current \u2212 Future)", colorClass: "text-emerald-600 dark:text-emerald-400", bgClass: "bg-emerald-50/40 dark:bg-emerald-500/5", getValue: (cf) => formatCurrency(cf.currentStateCosts - cf.futureStateCosts) },
+    { key: "otherBenefits", label: "Other Benefits", colorClass: "text-emerald-700 dark:text-emerald-300", bgClass: "", getValue: (cf) => { const other = cf.benefits - (cf.currentStateCosts - cf.futureStateCosts); return other > 0 ? formatCurrency(other) : "\u2014"; } },
     { key: "benefits", label: "Total Benefits", colorClass: "text-emerald-700 dark:text-emerald-300 font-semibold", bgClass: "bg-emerald-50/60 dark:bg-emerald-500/5", getValue: (cf) => formatCurrency(cf.benefits) },
     { key: "netCashFlow", label: "Net Cash Flow", colorClass: "", bgClass: "bg-slate-50/80 dark:bg-slate-800/30", getValue: (cf) => formatCurrency(cf.netCashFlow), isSection: true },
     { key: "cumulativeNet", label: "Cumulative Net", colorClass: "", bgClass: "", getValue: (cf) => formatCurrency(cf.cumulativeNet) },
