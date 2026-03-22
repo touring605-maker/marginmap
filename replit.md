@@ -96,6 +96,40 @@ Types exported: `BusinessCase`, `InsertBusinessCase`, etc.
 
 Production migrations handled by Replit when publishing. Development: `pnpm --filter @workspace/db run push`.
 
+## Choices & Value Flow (Migration Target)
+
+Replaces the old kanban-column Choices page (`ChoicesValueFlow.tsx`). The new section has two views toggled top-right: **Choice Cascade** (hierarchy tree + nested card discovery map) and **Choice Flow** (category × year swimlane with dependency bezier edges). Business cases ARE the choices — no separate choice entity. The hierarchy provides organizational structure around them.
+
+UI pattern sourced from: `/home/user/stratscaler/src/pages/choice-cascade/`
+Key adaptations: stratscaler's standalone `npv/cost/opex` fields on choices → marginmap's existing financial engine output (`cachedNpv`); stratscaler's `company_id` → marginmap's `org_id`; stratscaler's approval/selection flow → marginmap's existing `draft|in_review|approved` status.
+
+### New DB tables (add to `lib/db/src/schema/`)
+
+- `hierarchies` — `(id, orgId, name, description, createdBy, createdAt, updatedAt)`
+- `hierarchyNodes` — `(id, hierarchyId, parentNodeId, name, nodeType ['category'|'business_case'], businessCaseId nullable, depth, position, flowPosition, createdBy, createdAt, updatedAt)`
+- `choiceDependencies` — `(id, fromCaseId, toCaseId, depType ['forced'|'natural'|'metric_based'], metricKey, metricTargetValue, metricComparator, description, createdBy, createdAt)`
+
+New columns on `businessCases`: `deliverByYear integer` (for Choice Flow column placement), `cachedNpv numeric` (last financial model output, updated on every model run).
+
+### New API routes (add to `artifacts/api-server/src/routes/`)
+
+- `hierarchies.ts` — CRUD scoped by orgId; mount at `/api/hierarchies`
+- `hierarchyNodes.ts` — CRUD + reorder; mount at `/api/hierarchy-nodes`
+- `choiceDependencies.ts` — create/delete; mount at `/api/choice-dependencies`
+
+Register all three in `src/routes/index.ts`. Apply `verifyCaseOrgOwnership` IDOR pattern for all case-linked operations.
+
+### New frontend components (add to `artifacts/casebuilder/src/pages/choices/`)
+
+- `ChoicesPage.tsx` — hierarchy selector tabs, Cascade/Flow toggle top-right, aggregate NPV header summed across all business cases in the hierarchy
+- `ChoiceCascadeView.tsx` — left panel: expandable tree outline (categories + business case names); right panel: nested card grid (categories as column headers, sub-categories and business case cards nested inside). Cards show: name, `cachedNpv`, status badge (`draft`/`in_review`/`approved`), `timeHorizonMonths` as "Xmo". Category nodes show rollup NPV of descendants. Clicking a card navigates to `/cases/:id`.
+- `ChoiceFlowView.tsx` — rows: root categories; cols: `deliverByYear` values + "Unscheduled". Cards show: name, status, `cachedNpv`. Drag-drop updates `deliverByYear` + `flowPosition`. Bezier dependency edges from `choiceDependencies` (forced=red, natural=slate, metric_based=amber).
+- `ChoiceDetailDrawer.tsx` — summary drawer on card click; shows name, status, NPV, time horizon, description; "Open Full Case" button navigates to `CaseEditor`; "Dependencies" tab manages `choiceDependencies`.
+
+### DO NOT MODIFY
+
+`ValuesTab.tsx`, `CostsTab.tsx`, `ModelTab.tsx`, `ExportTab.tsx`, `financialEngine.ts`, `cases.ts` routes, `case_dependencies` table or routes, `canvas.ts` routes, any existing business case logic. The `case_dependencies` table (financial value cascading) is entirely separate from `choiceDependencies` (strategic sequencing) — both coexist.
+
 ### `lib/replit-auth-web` (`@workspace/replit-auth-web`)
 
 Client-side auth hook for web. Exports `useAuth()` which provides `user`, `isLoading`, `isAuthenticated`, `login()`, `logout()`. Fetches `/api/auth/user` with credentials.
